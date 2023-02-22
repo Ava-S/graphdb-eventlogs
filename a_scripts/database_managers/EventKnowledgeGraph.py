@@ -1,13 +1,13 @@
-from typing import Optional, List, Dict, Set
+from typing import List, Set
 
-from csv_to_eventgraph_neo4j.db_connection import DatabaseConnection
-from csv_to_eventgraph_neo4j.ekg_builder_semantic_header import EKGUsingSemanticHeaderBuilder
-from csv_to_eventgraph_neo4j.ekg_management import EKGManagement
-from csv_to_eventgraph_neo4j.datastructures import ImportedDataStructures
-from csv_to_eventgraph_neo4j.data_importer import Importer
+from a_scripts.database_managers.db_connection import DatabaseConnection
+from a_scripts.database_managers.ekg_builder_semantic_header import EKGUsingSemanticHeaderBuilder
+from a_scripts.database_managers.ekg_management import EKGManagement
+from a_scripts.data_managers.datastructures import ImportedDataStructures
+from a_scripts.data_managers.data_importer import Importer
 from csv_to_eventgraph_neo4j.inference_engine import InferenceEngine
-from csv_to_eventgraph_neo4j.performance_handling import Performance
-from csv_to_eventgraph_neo4j.semantic_header_lpg import SemanticHeaderLPG
+from a_scripts.additional_functions.performance_handling import Performance
+from a_scripts.data_managers.semantic_header_lpg import SemanticHeaderLPG
 
 from tabulate import tabulate
 
@@ -48,8 +48,11 @@ class EventKnowledgeGraph:
         """
         return self.ekg_management.get_all_node_labels()
 
+    def get_statistics(self):
+        return self.ekg_management.get_statistics()
+
     def print_statistics(self):
-        print(tabulate(self.ekg_management.get_statistics()))
+        print(tabulate(self.get_statistics()))
 
     # endregion
 
