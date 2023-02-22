@@ -1,4 +1,4 @@
-from csv_to_eventgraph_neo4j.query_library import CypherQueryLibrary as cql
+from a_scripts.database_managers.query_library import CypherQueryLibrary as cql
 
 
 class InferenceEngine:

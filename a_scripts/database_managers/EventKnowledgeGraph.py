@@ -5,7 +5,7 @@ from a_scripts.database_managers.ekg_builder_semantic_header import EKGUsingSema
 from a_scripts.database_managers.ekg_management import EKGManagement
 from a_scripts.data_managers.datastructures import ImportedDataStructures
 from a_scripts.data_managers.data_importer import Importer
-from csv_to_eventgraph_neo4j.inference_engine import InferenceEngine
+from a_scripts.database_managers.inference_engine import InferenceEngine
 from a_scripts.additional_functions.performance_handling import Performance
 from a_scripts.data_managers.semantic_header_lpg import SemanticHeaderLPG
 
