@@ -35,6 +35,8 @@ class Column:
     dtype: str
     nan_values: List[str]
     mandatory: bool
+    range_start: int
+    range_end: int
 
     @staticmethod
     def from_dict(obj: Any) -> Optional['Column']:
@@ -44,7 +46,10 @@ class Column:
         _dtype = obj.get("dtype")
         _nan_values = replace_undefined_value(obj.get("nan_values"), [])
         _mandatory = replace_undefined_value(obj.get("mandatory"), True)
-        return Column(_name, _dtype, _nan_values, _mandatory)
+        _range_start = obj.get("range_start")
+        _range_end = obj.get("range_end")
+        _mandatory = replace_undefined_value(obj.get("mandatory"), True)
+        return Column(_name, _dtype, _nan_values, _mandatory, _range_start, _range_end)
 
 
 @dataclass
@@ -231,27 +236,30 @@ class DataStructure:
             warnings.warn(
                 f"Na_rep_columns does not have the same size as columns for attribute {attribute.name}")
         else:  # they are the same size
-            for column, na_rep_column in zip(attribute.columns, attribute.na_rep_columns):
-                df_log[column.name].fillna(df_log[na_rep_column.name], inplace=True)
+            for i, na_rep_column in zip(range(len(attribute.na_rep_columns)), attribute.na_rep_columns):
+                attribute_name = f"{attribute.name}_{i}"
+                df_log[attribute_name].fillna(df_log[na_rep_column.name], inplace=True)
 
         return df_log
 
     @staticmethod
     def replace_nan_values_based_on_na_rep_value(df_log, attribute):
-        for column in attribute.columns:
-            df_log[column.name].fillna(attribute.na_rep_value, inplace=True)
+        for i in range(len(attribute.columns)):
+            attribute_name = f"{attribute.name}_{i}"
+            df_log[attribute_name].fillna(attribute.na_rep_value, inplace=True)
 
         return df_log
 
     @staticmethod
     def replace_nan_values_with_unknown(df_log, attribute):
         column: Column
-        for column in attribute.columns:
+        for i, column in zip(range(len(attribute.columns)), attribute.columns):
+            attribute_name = f"{attribute.name}_{i}"
             if column.mandatory:
                 try:
-                    df_log[column.name].fillna("Unknown", inplace=True)
+                    df_log[attribute_name].fillna("Unknown", inplace=True)
                 except:
-                    df_log[column.name].fillna(-1, inplace=True)
+                    df_log[attribute_name].fillna(-1, inplace=True)
         return df_log
 
     @staticmethod
@@ -263,22 +271,38 @@ class DataStructure:
         return df_log
 
     @staticmethod
-    def rename_column(df_log, attribute):
-        column_name = attribute.columns[0].name
-        if attribute.name != column_name:  # we rename the attribute
-            df_log = df_log.rename(columns={column_name: attribute.name})
+    def combine_attribute_columns(df_log, attribute):
+        compound_attribute_names = [f"{attribute.name}_{i}" for i in range(len(attribute.columns))]
+        if attribute.is_compound:
+            df_log[f"{attribute.name}_attribute"] = df_log[compound_attribute_names].apply(
+                lambda row: attribute.separator.join([value for value in row.values.astype(str) if
+                                                      not (value == 'nan' or value != value)]), axis=1)
+        else:
+            df_log[f"{attribute.name}_attribute"] = df_log[f"{attribute.name}_0"]
+        df_log = df_log.drop(columns=compound_attribute_names)
+        return df_log
+
+    @staticmethod
+    def create_attribute_columns(df_log, attribute):
+        for i, column in zip(range(len(attribute.columns)), attribute.columns):
+            attribute_name = f"{attribute.name}_{i}"
+            df_log[attribute_name] = df_log[column.name]
+            if column.range_start is not None or column.range_end is not None:
+                df_log[attribute_name] = df_log[attribute_name].str[column.range_start:column.range_end]
         return df_log
 
     @staticmethod
     def replace_with_nan(df_log, attribute):
-        for column in attribute.columns:
+        for i, column in zip(range(len(attribute.columns)), attribute.columns):
+            attribute_name = f"{attribute.name}_{i}"
             for nan_value in column.nan_values:
-                df_log[column.name] = df_log[column.name].replace(nan_value, np.nan, regex=False)
+                df_log[attribute_name] = df_log[attribute_name].replace(nan_value, np.nan, regex=False)
         return df_log
 
     def preprocess_according_to_attributes(self, df_log):
         # loop over all attributes and check if they should be created, renamed or imputed
         for attribute in self.attributes:
+            df_log = DataStructure.create_attribute_columns(df_log, attribute)
             df_log = DataStructure.replace_with_nan(df_log, attribute)
             if len(attribute.na_rep_columns) > 0:  # impute values in case of missing values
                 df_log = DataStructure.replace_nan_values_based_on_na_rep_columns(df_log, attribute)
@@ -286,10 +310,7 @@ class DataStructure:
                 df_log = DataStructure.replace_nan_values_based_on_na_rep_value(df_log, attribute)
             if attribute.mandatory:
                 df_log = DataStructure.replace_nan_values_with_unknown(df_log, attribute)
-            if attribute.is_compound:  # create attribute by composing
-                df_log = DataStructure.create_compound_attribute(df_log, attribute)
-            else:  # not compound, check for renaming
-                df_log = DataStructure.rename_column(df_log, attribute)
+            df_log = DataStructure.combine_attribute_columns(df_log, attribute)
 
         return df_log
 
@@ -311,8 +332,11 @@ class DataStructure:
 
         # all columns have been renamed to or constructed with the name attribute,
         # hence only keep those that match with a name attribute
-        required_attributes = list(set([attribute.name for attribute in self.attributes]))
+        required_attributes = list([f"{attribute.name}_attribute" for attribute in self.attributes])
+        required_attributes_mapping = {f"{attribute.name}_attribute": f"{attribute.name}" for attribute in
+                                       self.attributes}
         df_log = df_log[required_attributes]
+        df_log = df_log.rename(columns=required_attributes_mapping)
 
         return df_log
 
@@ -343,3 +367,4 @@ class ImportedDataStructures:
             json_event_tables = json.load(f)
 
         self.structures = [DataStructure.from_dict(item) for item in json_event_tables]
+        self.structures = [item for item in self.structures if item is not None]
