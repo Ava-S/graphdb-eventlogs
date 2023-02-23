@@ -10,7 +10,7 @@ from database_managers import authentication
 
 connection = authentication.connections_map[authentication.Connections.LOCAL]
 
-dataset_name = 'BPIC18'
+dataset_name = 'BPIC16'
 use_sample = True
 
 semantic_header = SemanticHeaderLPG.create_semantic_header(dataset_name)
@@ -21,17 +21,6 @@ datastructures = ImportedDataStructures(dataset_name)
 
 step_clear_db = True
 step_populate_graph = True
-step_load_events_from_csv = True
-step_filter_events = True
-step_create_log = True
-step_create_entities = True
-step_create_entity_relations = True
-step_reify_relations = True
-step_create_df = True
-step_delete_parallel_df = True
-step_create_event_classes = True
-step_create_dfc = True
-step_delete_duplicate_df = True
 
 use_preloaded_files = False  # if false, read/import files instead
 verbose = False
@@ -79,7 +68,7 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
     perf.finished_step(log_message=f"(:Log) nodes and [:HAS] relations done")
 
     # for each entity, we add the entity nodes to graph and correlate them to the correct events
-    graph.create_entities()
+    graph.create_entities_by_nodes(node_label="Event")
     perf.finished_step(log_message=f"(:Entity) nodes done")
 
     graph.correlate_events_to_entities()
@@ -90,9 +79,6 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
 
     graph.create_entity_relations()
     perf.finished_step(log_message=f"[:REL] edges done")
-
-    graph.add_attributes_to_classifier(relation="IS", label="ActivityType", properties=["entity", "type", "subtype"])
-    graph.add_attributes_to_classifier(relation="AT", label="Location", properties=["ID"], copy_as=["location"])
 
     graph.reify_entity_relations()
     perf.finished_step(log_message=f"Reified (:Entity) nodes done")
