@@ -1,8 +1,8 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, Any, List
 
-from a_scripts.data_managers.datastructures import DataStructure
-from a_scripts.data_managers.semantic_header_lpg import EntityLPG, RelationLPG, ClassLPG
+from data_managers.datastructures import DataStructure
+from data_managers.semantic_header_lpg import EntityLPG, RelationLPG, ClassLPG
 from string import Template
 
 
@@ -224,13 +224,13 @@ class CypherQueryLibrary:
         # correlate events that contain a reference from an entity to that entity node
         entity_labels_string = entity.get_label_string()
         primary_key_id = entity.get_composed_primary_id()
-        conditions = entity.get_where_condition()
+        conditions = entity.get_where_condition_correlation()
 
         q_correlate = f'''
             CALL apoc.periodic.iterate(
-                'MATCH (e:Event) WHERE {conditions}
-                WITH e, {primary_key_id} as id
-                MATCH (n:{entity_labels_string}) WHERE id = n.ID
+                '
+                MATCH (n:{entity_labels_string})
+                MATCH (e:Event) WHERE {conditions}
                 RETURN e, n',
                 'MERGE (e)-[:CORR]->(n)',
                 {{batchSize: {batch_size}}})
@@ -249,7 +249,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_correlate, kwargs={})
 
     @staticmethod
-    def get_create_entity_relationships_query(relation: RelationLPG) -> Query:
+    def get_create_entity_relationships_query(relation: RelationLPG, batch_size: int) -> Query:
         # find events that are related to different entities of which one event also has a reference to the other entity
         # create a relation between these two entities
         relation_type = relation.type
@@ -258,17 +258,67 @@ class CypherQueryLibrary:
         foreign_key = relation.foreign_key
         primary_key = relation.primary_key
 
+        #TODO figure out what to do in case entities do not share an event (especially with run time)
         q_create_relation = f'''
-            MATCH (_from:{entity_label_from_node})
-            MATCH (to:{entity_label_to_node})
-                WHERE to <> _from AND (to.{primary_key} in _from.{foreign_key} OR to.{primary_key} = _from.{foreign_key})
-            WITH DISTINCT _from, to
-            MERGE (_from) - [:{relation_type.upper()} {{type:"Rel",
+                CALL apoc.periodic.iterate(
+                '
+                MATCH (tf:ForeignKey {{type:"{foreign_key}"}}) - [:KEY_{entity_label_from_node.upper()}] -> (_from:{entity_label_from_node})
+                MATCH (to:{entity_label_to_node} {{{primary_key}:tf.id}})
+                RETURN distinct to, _from',
+                'MERGE (_from) - [:{relation_type.upper()} {{type:"Rel",
                     {entity_label_from_node.lower()}Id: _from.ID,
                     {entity_label_to_node.lower()}Id: to.{primary_key}                                              
-                                                    }}]-> (to)'''
+                                                    }}]-> (to)',
+                {{batchSize: {batch_size}}})
+                '''
 
         return Query(query_string=q_create_relation, kwargs={})
+
+    @staticmethod
+    def create_foreign_key_relation(relation: RelationLPG) -> Query:
+        # find events that are related to different entities of which one event also has a reference to the other entity
+        # create a relation between these two entities
+        entity_label_from_node = relation.from_node_label
+        foreign_key = relation.foreign_key
+
+        #TODO figure out what to do in case entities do not share an event (especially with run time)
+        q_create_relation = f'''
+            MATCH (_from:{entity_label_from_node})
+            WITH _from, _from.{foreign_key} as foreign_keys
+            UNWIND foreign_keys as foreign_key
+            MERGE (_from) <- [:KEY_{entity_label_from_node.upper()}] - (tf:ForeignKey {{id:foreign_key, type:'{foreign_key}'}})
+            '''
+
+        return Query(query_string=q_create_relation, kwargs={})
+
+    @staticmethod
+    def merge_foreign_key_nodes(relation: RelationLPG) -> Query:
+        # find events that are related to different entities of which one event also has a reference to the other entity
+        # create a relation between these two entities
+        foreign_key = relation.foreign_key
+
+        #TODO figure out what to do in case entities do not share an event (especially with run time)
+        q_create_relation = f'''
+            MATCH (tf:ForeignKey {{type:'{foreign_key}'}})
+            WITH tf.id as id, collect(tf) as same_nodes
+            CALL apoc.refactor.mergeNodes(same_nodes, {{properties:"discard"}})
+            YIELD node
+            RETURN node
+            '''
+
+        return Query(query_string=q_create_relation, kwargs={})
+
+    @staticmethod
+    def get_delete_foreign_nodes_query(relation: RelationLPG) -> Query:
+        foreign_key = relation.foreign_key
+
+        # TODO figure out what to do in case entities do not share an event (especially with run time)
+        q_string = f'''
+                    MATCH (tf:ForeignKey {{type:'{foreign_key}'}})
+                    DETACH DELETE tf
+                    '''
+
+        return Query(query_string=q_string, kwargs={})
 
     @staticmethod
     def get_create_entities_by_relations_query(entity: EntityLPG) -> Query:
