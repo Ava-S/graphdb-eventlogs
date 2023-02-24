@@ -1,7 +1,7 @@
-from a_scripts.database_managers.db_connection import DatabaseConnection
-from a_scripts.additional_functions.performance_handling import Performance
-from a_scripts.database_managers.query_library import CypherQueryLibrary
-from a_scripts.data_managers.semantic_header_lpg import SemanticHeaderLPG, EntityLPG, RelationLPG
+from database_managers.db_connection import DatabaseConnection
+from utilities.performance_handling import Performance
+from database_managers.query_library import CypherQueryLibrary
+from data_managers.semantic_header_lpg import SemanticHeaderLPG, EntityLPG, RelationLPG
 
 
 class EKGUsingSemanticHeaderBuilder:
@@ -33,12 +33,11 @@ class EKGUsingSemanticHeaderBuilder:
                 self.connection.exec_query(CypherQueryLibrary.get_create_entity_query, **{"entity": entity})
                 self._write_message_to_performance(f"Entity (:{entity.get_label_string()}) node created")
 
-    def correlate_events_to_entities(self) -> None:
+    def correlate_events_to_entities(self, node_label) -> None:
         # correlate events that contain a reference from an entity to that entity node
-        entities = self.semantic_header.entities_derived_from_nodes
         entity: EntityLPG
-        for entity in entities:
-            if entity.corr:
+        for entity in self.semantic_header.entities_derived_from_nodes:
+            if entity.corr and (node_label is None or entity.constructed_by.node_label == node_label):
                 # find events that contain the entity as property and not nan
                 # save the value of the entity property as id and also whether it is a virtual entity
                 # create a new entity node if it not exists yet with properties
@@ -54,12 +53,26 @@ class EKGUsingSemanticHeaderBuilder:
         relation: RelationLPG
         for relation in self.semantic_header.relations:
             if relation.include:
+                self.create_foreign_nodes(relation)
                 self.connection.exec_query(CypherQueryLibrary.get_create_entity_relationships_query,
-                                           **{"relation": relation})
+                                           **{"relation": relation,
+                                              "batch_size": self.batch_size})
+                self.delete_foreign_nodes(relation)
 
                 self._write_message_to_performance(
                     message=f"Relation (:{relation.from_node_label}) - [:{relation.type}] -> "
                             f"(:{relation.to_node_label}) done")
+
+    def create_foreign_nodes(self, relation: RelationLPG):
+        self.connection.exec_query(CypherQueryLibrary.create_foreign_key_relation,
+                                   **{"relation": relation})
+        self.connection.exec_query(CypherQueryLibrary.merge_foreign_key_nodes,
+                                   **{"relation": relation})
+
+    def delete_foreign_nodes(self, relation: RelationLPG):
+        self.connection.exec_query(CypherQueryLibrary.get_delete_foreign_nodes_query,
+                                   **{"relation": relation})
+
 
     def create_entities_by_relations(self) -> None:
         relation: RelationLPG
