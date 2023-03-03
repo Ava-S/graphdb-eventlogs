@@ -112,13 +112,14 @@ class EventKnowledgeGraph:
         self.inference_engine.match_event_with_batch_position(entity)
         self.add_entity_to_event(entity=entity)
 
-    def infer_items_to_events_with_batch_position(self, entity):
-        self.inference_engine.infer_items_to_events_with_batch_position(entity)
+    def infer_items_to_events_using_location_batch_to_single(self, entity):
+        self.inference_engine.infer_items_to_events_using_location_batch_to_single(entity)
         self.add_entity_to_event(entity=entity)
 
-    def infer_items_to_administrative_events_using_location(self, entity):
-        self.inference_engine.infer_items_to_administrative_events_using_location(entity)
+    def infer_items_to_events_using_location_single_to_single(self, entity):
+        self.inference_engine.infer_items_to_events_using_location_single_to_single(entity)
         self.add_entity_to_event(entity=entity)
+
 
     def add_entity_to_event(self, entity):
         self.inference_engine.add_entity_to_event(entity)

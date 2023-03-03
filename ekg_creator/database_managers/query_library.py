@@ -223,7 +223,6 @@ class CypherQueryLibrary:
     def get_correlate_events_to_entity_query(entity: EntityLPG, batch_size: int) -> Query:
         # correlate events that contain a reference from an entity to that entity node
         entity_labels_string = entity.get_label_string()
-        primary_key_id = entity.get_composed_primary_id()
         conditions = entity.get_where_condition_correlation()
 
         q_correlate = f'''
@@ -258,7 +257,6 @@ class CypherQueryLibrary:
         foreign_key = relation.foreign_key
         primary_key = relation.primary_key
 
-        #TODO figure out what to do in case entities do not share an event (especially with run time)
         q_create_relation = f'''
                 CALL apoc.periodic.iterate(
                 '
@@ -281,7 +279,6 @@ class CypherQueryLibrary:
         entity_label_from_node = relation.from_node_label
         foreign_key = relation.foreign_key
 
-        #TODO figure out what to do in case entities do not share an event (especially with run time)
         q_create_relation = f'''
             MATCH (_from:{entity_label_from_node})
             WITH _from, _from.{foreign_key} as foreign_keys
@@ -297,7 +294,6 @@ class CypherQueryLibrary:
         # create a relation between these two entities
         foreign_key = relation.foreign_key
 
-        #TODO figure out what to do in case entities do not share an event (especially with run time)
         q_create_relation = f'''
             MATCH (tf:ForeignKey {{type:'{foreign_key}'}})
             WITH tf.id as id, collect(tf) as same_nodes
@@ -312,7 +308,6 @@ class CypherQueryLibrary:
     def get_delete_foreign_nodes_query(relation: RelationLPG) -> Query:
         foreign_key = relation.foreign_key
 
-        # TODO figure out what to do in case entities do not share an event (especially with run time)
         q_string = f'''
                     MATCH (tf:ForeignKey {{type:'{foreign_key}'}})
                     DETACH DELETE tf
@@ -651,24 +646,31 @@ class CypherQueryLibrary:
         return Query(query_string=query_str, kwargs={})
 
     @staticmethod
-    def infer_items_to_events_with_batch_position(entity: EntityLPG) -> Query:
+    def infer_items_to_events_using_location_batch_to_single(entity: EntityLPG) -> Query:
         query_str = '''
-        MATCH (e:Event) - [:CORR] -> (b:BatchPosition)
-        WHERE e.$entity_id = "Unknown"
-        MATCH (e) - [:CORR] -> (equipment:Equipment)
-        MATCH (e) - [:OBSERVED] -> (:Class) - [:AT] - (:Location) - [:PART_OF*0..] -> (l:Location) 
-        MATCH (l) - [:AT] - (c:Class {type: "physical", subtype: "load", entity: "$entity"})
-        WITH e, c, equipment, b
-        CALL {  WITH e, c, equipment, b
-                MATCH (load_event:Event) - [:OBSERVED] -> (c) 
-                MATCH (load_event) - [:CORR] -> (equipment)
-                MATCH (load_event) - [:CORR] -> (n:$entity) - [:AT_POS] -> (b)
-                WHERE load_event.timestamp <= e.timestamp
-                RETURN load_event as load_event_inf, n
-                ORDER BY load_event.timestamp DESC
-                LIMIT 1
-                }
-        MERGE (e) - [:CORR] -> (n)
+        MATCH (f:Event) - [:CORR] -> (b:BatchPosition)
+        WHERE f.$entity_id="Unknown"
+        MATCH (f) - [:CORR] -> (equipment :Equipment)
+        MATCH (f) - [:OBSERVED] -> (c_other:Class) <-[:AT]- (:Location) - [:PART_OF*0..] -> (l:Location) 
+        MATCH (c_other) - [:IS] 
+                            - (:ActivityType {entity:"$entity"})
+        MATCH (l) - [:AT] -> (c_load:Class) - [:IS] 
+                - (:ActivityType {type:"physical", subtype: "load", entity:"$entity"})
+        WITH f, equipment, c_load, b
+        CALL {WITH f, equipment ,c_load
+            MATCH (e_load: Event)-[:OBSERVED]->(c_load)
+            MATCH (e_load)-[:CORR]->(resource)
+            WHERE e_load.timestamp <= f.timestamp
+            // find the first preceding e_load
+            RETURN e_load as e_load_inf
+            ORDER BY e_load.timestamp DESC
+            LIMIT 1
+        }
+        // only merge when e_load_inf is actually related to a Box
+        WITH f, [(e_load_inf)-[:CORR]->(n:$entity)- [:AT_POS] -> (b) | n] as related_n
+        FOREACH (n in related_n | 
+            MERGE (f) - [:CORR] -> (n)
+        )
         '''
 
         query_str = Template(query_str).substitute(entity=entity.type, entity_id=entity.get_primary_keys()[0])
@@ -676,23 +678,30 @@ class CypherQueryLibrary:
         return Query(query_string=query_str, kwargs={})
 
     @staticmethod
-    def infer_items_to_administrative_events_using_location(entity: EntityLPG) -> Query:
+    def infer_items_to_events_using_location_single_to_single(entity: EntityLPG) -> Query:
         query_str = '''
-                    MATCH (e:Event) - [:CORR] -> (equipment:Equipment)
-                    WHERE e.$entity_id = "Unknown"
-                    MATCH (e) - [:OBSERVED] -> (:Class {type:"administrative"}) <- [:AT] - (l:Location)
-                    MATCH (l) - [:AT] - (c:Class {subtype: "load", entity: "$entity"}) 
-                    WITH e, equipment, c
-                    CALL {  WITH e, equipment, c
-                            MATCH (load_event:Event) - [:OBSERVED] -> (c)
-                            MATCH (load_event) - [:CORR] -> (equipment)
-                            MATCH (load_event) - [:CORR] -> (n:$entity)
-                            WHERE load_event.timestamp <= e.timestamp
-                            RETURN load_event as load_event_inf, n
-                            ORDER BY load_event.timestamp DESC
-                            LIMIT 1
-                            }
-                    MERGE (e) - [:CORR] -> (n)
+                    MATCH (f :Event) - [:CORR] -> (equipment :Equipment)
+                    WHERE f.$entity_id="Unknown"
+                    MATCH (f) - [:OBSERVED] -> (c_other:Class) <-[:AT]- (l:Location) 
+                    MATCH (c_other) - [:IS] 
+                            - (:ActivityType {entity:"$entity"})
+                    MATCH (l) - [:AT] -> (c_load:Class) - [:IS] 
+                            - (:ActivityType {type:"physical", subtype: "load", entity:"$entity"})
+                    WITH f, equipment, c_load
+                    CALL {WITH f, equipment ,c_load
+                        MATCH (e_load: Event)-[:OBSERVED]->(c_load)
+                        MATCH (e_load)-[:CORR]->(resource)
+                        WHERE e_load.timestamp <= f.timestamp
+                        // find the first preceding e_load
+                        RETURN e_load as e_load_inf
+                        ORDER BY e_load.timestamp DESC
+                        LIMIT 1
+                    }
+                    // only merge when e_load_inf is actually related to a Box
+                    WITH f, [(e_load_inf)-[:CORR]->(n:$entity) | n] as related_n
+                    FOREACH (n in related_n | 
+                    MERGE (f) - [:CORR] -> (n)
+                    )
                     '''
 
         query_str = Template(query_str).substitute(entity=entity.type, entity_id=entity.get_primary_keys()[0])

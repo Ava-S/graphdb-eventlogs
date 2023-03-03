@@ -24,7 +24,7 @@ class Class(ABC):
 
 
 @dataclass
-class Condition:  # TODO convert to abc, replace undefined values
+class Condition:
     attribute: str
     values: List[Any]
 
@@ -198,10 +198,8 @@ class Log(ABC):
     @classmethod
     def from_dict(cls, obj: Any) -> Self:
         if obj is None:
-            return Log(True, True)
+            return Log(False, False)
         _include = replace_undefined_value(obj.get("include"), True)
-        if not _include:
-            return None
         _has = replace_undefined_value(obj.get("has"), True)
         return cls(_include, _has)
 

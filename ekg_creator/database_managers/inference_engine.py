@@ -1,4 +1,4 @@
-from a_scripts.database_managers.query_library import CypherQueryLibrary as cql
+from database_managers.query_library import CypherQueryLibrary as cql
 
 
 class InferenceEngine:
@@ -24,12 +24,12 @@ class InferenceEngine:
         self.connection.exec_query(cql.match_event_with_batch_position, **{"entity": entity})
         self._write_message_to_performance("Events are matched with batch position")
 
-    def infer_items_to_events_with_batch_position(self, entity):
-        self.connection.exec_query(cql.infer_items_to_events_with_batch_position,
+    def infer_items_to_events_using_location_batch_to_single(self, entity):
+        self.connection.exec_query(cql.infer_items_to_events_using_location_batch_to_single,
                                    **{"entity": entity})
 
-    def infer_items_to_administrative_events_using_location(self, entity):
-        self.connection.exec_query(cql.infer_items_to_administrative_events_using_location, **{"entity": entity})
+    def infer_items_to_events_using_location_single_to_single(self, entity):
+        self.connection.exec_query(cql.infer_items_to_events_using_location_single_to_single, **{"entity": entity})
 
     def add_entity_to_event(self, entity):
         self.connection.exec_query(cql.add_entity_to_event, **{"entity": entity})

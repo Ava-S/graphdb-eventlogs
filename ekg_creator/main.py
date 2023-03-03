@@ -12,7 +12,7 @@ from database_managers import authentication
 
 connection = authentication.connections_map[authentication.Connections.LOCAL]
 
-dataset_name = 'BPIC14'
+dataset_name = 'BoxProcess'
 use_sample = False
 
 semantic_header = SemanticHeaderLPG.create_semantic_header(dataset_name)
@@ -88,12 +88,13 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
     graph.correlate_events_to_reification()
     perf.finished_step(log_message=f"[:CORR] edges for Reified (:Entity) nodes done")
 
+    graph.add_attributes_to_classifier("IS", "ActivityType", ["type", "subtype", "entity"])
     entity = semantic_header.get_entity("Box")
     graph.infer_items_to_load_events(entity=entity, is_load=True)
     graph.infer_items_to_load_events(entity=entity, is_load=False)
     graph.match_entity_with_batch_position(entity=entity)
-    graph.infer_items_to_events_with_batch_position(entity=entity)
-    graph.infer_items_to_administrative_events_using_location(entity=entity)
+    graph.infer_items_to_events_using_location_batch_to_single(entity=entity)
+    graph.infer_items_to_events_using_location_single_to_single(entity=entity)
     graph.match_event_with_batch_position(entity=entity)
     entity = semantic_header.get_entity("BatchPosition")
     graph.add_entity_to_event(entity=entity)
@@ -106,9 +107,6 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
 
     graph.merge_duplicate_df()
     perf.finished_step(log_message=f"Merged duplicate [:DF] edges done")
-
-    # graph.df_class_relations()
-    # perf.finished_step(log_message=f"[:DF_C] edges done")
 
 
 def main() -> None:
