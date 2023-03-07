@@ -88,6 +88,8 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
     graph.correlate_events_to_reification()
     perf.finished_step(log_message=f"[:CORR] edges for Reified (:Entity) nodes done")
 
+    graph.create_location_nodes()
+
     graph.add_attributes_to_classifier("IS", "ActivityType", ["type", "subtype", "entity"])
     entity = semantic_header.get_entity("Box")
     graph.infer_items_to_load_events(entity=entity, is_load=True)

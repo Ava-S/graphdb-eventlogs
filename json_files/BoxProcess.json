@@ -70,22 +70,22 @@
     },
     {
       "type": "AT",
-      "from_node_label": "Location",
+      "from_node_label": "LocationType",
       "to_node_label": "Class",
       "primary_key": "activity",
       "foreign_key": "activity"
     },
     {
       "type": "PART_OF",
-      "from_node_label": "Location",
+      "from_node_label": "LocationType",
       "to_node_label": "Equipment",
       "primary_key": "ID",
       "foreign_key": "equipment"
     },
     {
       "type": "PART_OF",
-      "from_node_label": "Location",
-      "to_node_label": "Location",
+      "from_node_label": "LocationType",
+      "to_node_label": "LocationType",
       "primary_key": "ID",
       "foreign_key": "partOf"
     },

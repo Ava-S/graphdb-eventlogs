@@ -619,17 +619,15 @@ class CypherQueryLibrary:
     @staticmethod
     def infer_items_to_load_events(entity: EntityLPG, is_load=True) -> Query:
         query_str = '''
-            MATCH (e:Event) - [:CORR] -> (n:$entity)
-            MATCH (e) - [:CORR] ->  (equipment:Equipment)
-            MATCH (e) - [:OBSERVED] -> (:Class) - [:AT] - (:Location) - [:PART_OF*0..] -> (l:Location) 
-            MATCH (l) - [:AT] - (c:Class  {type: "physical", subtype: "$subtype", entity: "$entity"})
-            WITH e, c, equipment, n
-            CALL {WITH e, c, equipment
-                MATCH (load_event:Event) - [:OBSERVED] -> (c) 
-                MATCH (load_event) - [:CORR] ->  (equipment)
-                WHERE load_event.timestamp $comparison e.timestamp AND load_event.$entity_id = "Unknown"
-                RETURN load_event as $load_event_type
-                ORDER BY load_event.timestamp $order_type
+            MATCH (e1:Event) - [:CORR] -> (n:$entity)
+            MATCH (e1) - [:AT] -> (:Location) - [:PART_OF*0..] -> (loc:Location)
+            WITH e1, n, loc
+            CALL {WITH e1, loc
+                MATCH (e0:Event) - [:OBSERVED] -> (c:Class  {type: "physical", subtype: "$subtype", entity: "$entity"})
+                MATCH (e0) - [:AT] ->  (loc)
+                WHERE e0.timestamp $comparison e1.timestamp AND e0.$entity_id = "Unknown"
+                RETURN e0 as $load_event_type
+                ORDER BY e0.timestamp $order_type
                 LIMIT 1}
             MERGE ($load_event_type) - [:CORR] -> (n)
             '''
@@ -648,28 +646,25 @@ class CypherQueryLibrary:
     @staticmethod
     def infer_items_to_events_using_location_batch_to_single(entity: EntityLPG) -> Query:
         query_str = '''
-        MATCH (f:Event) - [:CORR] -> (b:BatchPosition)
-        WHERE f.$entity_id="Unknown"
-        MATCH (f) - [:CORR] -> (equipment :Equipment)
-        MATCH (f) - [:OBSERVED] -> (c_other:Class) <-[:AT]- (:Location) - [:PART_OF*0..] -> (l:Location) 
-        MATCH (c_other) - [:IS] 
-                            - (:ActivityType {entity:"$entity"})
-        MATCH (l) - [:AT] -> (c_load:Class) - [:IS] 
+        MATCH (e2:Event) - [:CORR] -> (b:BatchPosition)
+        WHERE e2.$entity_id="Unknown"
+        MATCH (e2) -[:AT]-> (:Location) - [:PART_OF*0..] -> (loc_k:Location) 
+        WITH e2, loc_k, b
+        CALL {WITH e2, loc_k
+            MATCH (e0: Event)-[:OBSERVED]-> (c_load:Class) - [:IS] 
                 - (:ActivityType {type:"physical", subtype: "load", entity:"$entity"})
-        WITH f, equipment, c_load, b
-        CALL {WITH f, equipment ,c_load
-            MATCH (e_load: Event)-[:OBSERVED]->(c_load)
-            MATCH (e_load)-[:CORR]->(resource)
-            WHERE e_load.timestamp <= f.timestamp
+            MATCH (e0) - [:AT] -> (loc_k) 
+            WHERE e0.timestamp <= e2.timestamp
             // find the first preceding e_load
-            RETURN e_load as e_load_inf
-            ORDER BY e_load.timestamp DESC
+            RETURN e0 as e0_first_prec
+            ORDER BY e0.timestamp DESC
             LIMIT 1
         }
         // only merge when e_load_inf is actually related to a Box
-        WITH f, [(e_load_inf)-[:CORR]->(n:$entity)- [:AT_POS] -> (b) | n] as related_n
+        WITH e2, [(e0_first_prec)-[:CORR]->(n:$entity)- [:AT_POS] -> (b) | n] as related_n
         FOREACH (n in related_n | 
-            MERGE (f) - [:CORR] -> (n)
+            MERGE (e2) - [:CORR] -> (n)
+            SET e2.$entity_id = n.ID
         )
         '''
 
@@ -680,27 +675,24 @@ class CypherQueryLibrary:
     @staticmethod
     def infer_items_to_events_using_location_single_to_single(entity: EntityLPG) -> Query:
         query_str = '''
-                    MATCH (f :Event) - [:CORR] -> (equipment :Equipment)
-                    WHERE f.$entity_id="Unknown"
-                    MATCH (f) - [:OBSERVED] -> (c_other:Class) <-[:AT]- (l:Location) 
-                    MATCH (c_other) - [:IS] 
-                            - (:ActivityType {entity:"$entity"})
-                    MATCH (l) - [:AT] -> (c_load:Class) - [:IS] 
+                    MATCH (e1:Event) - [:AT] - (l:Location)
+                    WHERE e1.$entity_id="Unknown"
+                    WITH e1, l
+                    CALL {  WITH e1, l
+                            MATCH (e0:Event) - [:AT] - (l)
+                            MATCH (e0) - [:OBSERVED] -> (c_load:Class) - [:IS] 
                             - (:ActivityType {type:"physical", subtype: "load", entity:"$entity"})
-                    WITH f, equipment, c_load
-                    CALL {WITH f, equipment ,c_load
-                        MATCH (e_load: Event)-[:OBSERVED]->(c_load)
-                        MATCH (e_load)-[:CORR]->(resource)
-                        WHERE e_load.timestamp <= f.timestamp
-                        // find the first preceding e_load
-                        RETURN e_load as e_load_inf
-                        ORDER BY e_load.timestamp DESC
-                        LIMIT 1
+                            WHERE e0.timestamp <= e1.timestamp
+                            // find the first preceding e_load
+                            RETURN e0 as e0_first_prec
+                            ORDER BY e0.timestamp DESC
+                            LIMIT 1
                     }
                     // only merge when e_load_inf is actually related to a Box
-                    WITH f, [(e_load_inf)-[:CORR]->(n:$entity) | n] as related_n
+                    WITH e1, [(e0_first_prec)-[:CORR]->(n:$entity) | n] as related_n
                     FOREACH (n in related_n | 
-                    MERGE (f) - [:CORR] -> (n)
+                        MERGE (e1) - [:CORR] -> (n)
+                        SET e1.$entity_id=n.ID
                     )
                     '''
 

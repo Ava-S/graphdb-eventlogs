@@ -1,6 +1,7 @@
 from typing import List, Set
 from database_managers.db_connection import DatabaseConnection
 from database_managers.ekg_builder_semantic_header import EKGUsingSemanticHeaderBuilder
+from database_managers.ekg_custom import EKGCustom
 from database_managers.ekg_management import EKGManagement
 from data_managers.datastructures import ImportedDataStructures
 from data_managers.data_importer import Importer
@@ -23,6 +24,7 @@ class EventKnowledgeGraph:
         self.ekg_builder = EKGUsingSemanticHeaderBuilder(db_connection=db_connection, semantic_header=semantic_header,
                                                          batch_size=batch_size, perf=perf)
         self.inference_engine = InferenceEngine(db_connection=db_connection, perf=perf)
+        self.custom_ekq = EKGCustom(db_connection=db_connection, perf=perf)
         # ensure to allocate enough memory to your database: dbms.memory.heap.max_size=5G advised
 
     # region EKG management
@@ -120,8 +122,11 @@ class EventKnowledgeGraph:
         self.inference_engine.infer_items_to_events_using_location_single_to_single(entity)
         self.add_entity_to_event(entity=entity)
 
-
     def add_entity_to_event(self, entity):
         self.inference_engine.add_entity_to_event(entity)
 
     # endregion
+
+    # custom queries
+    def create_location_nodes(self):
+        self.custom_ekq.create_location_nodes()
