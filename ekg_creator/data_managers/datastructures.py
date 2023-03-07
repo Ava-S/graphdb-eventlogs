@@ -114,6 +114,8 @@ class Sample:
         _size = obj.get("size")
         _ids = obj.get("ids")
 
+        return Sample(_file_name, _use_random_sample, _population_column, _size, _ids)
+
 
 class DataStructure:
     def __init__(self, include: bool, name: str, file_directory: str, file_names: List[str], labels: List[str],
@@ -260,6 +262,7 @@ class DataStructure:
             df_log[attribute_name] = df_log[column.name]
             if column.range_start is not None or column.range_end is not None:
                 df_log[attribute_name] = df_log[attribute_name].str[column.range_start:column.range_end]
+                df_log[attribute_name] = pd.to_numeric(df_log[attribute_name], errors='ignore')
         return df_log
 
     @staticmethod

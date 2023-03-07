@@ -41,13 +41,66 @@ class Condition:  # TODO convert to abc, replace undefined values
 
 
 @dataclass
+class RelationConstructorByNodes(ABC):
+    from_node_label: str
+    to_node_label: str
+    foreign_key: str
+    primary_key: str
+    reversed: bool
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> Optional[Self]:
+        if obj is None:
+            return None
+
+        _from_node_label = obj.get("from_node_label")
+        _to_node_label = obj.get("to_node_label")
+        _foreign_key = obj.get("foreign_key")
+        _primary_key = replace_undefined_value(obj.get("primary_key"), "ID")
+        _reversed = replace_undefined_value(obj.get("reversed"), False)
+
+        return cls(from_node_label=_from_node_label, to_node_label=_to_node_label,
+                   foreign_key=_foreign_key, primary_key=_primary_key,
+                   reversed=_reversed)
+
+
+@dataclass
+class RelationConstructorByRelations(ABC):
+    relation_type: str
+    conditions: List[Condition]
+
+    @classmethod
+    def from_dict(cls, obj: Any, condition_class_name: Condition = Condition) -> Optional[Self]:
+        if obj is None:
+            return None
+
+        _relation_type = obj.get("relation_type")
+        _conditions = create_list(condition_class_name, obj.get("conditions"))
+
+        return cls(relation_type=_relation_type, conditions=_conditions)
+
+
+@dataclass
+class RelationConstructorByQuery(ABC):
+    query: str
+
+    @classmethod
+    def from_dict(cls, obj: Any) -> Optional[Self]:
+        if obj is None:
+            return None
+
+        _query = obj.get("query")
+
+        return cls(query=_query)
+
+
+@dataclass
 class Relation(ABC):
     include: bool
     type: str
-    from_node_label: str
-    to_node_label: str
+    constructed_by: Union[RelationConstructorByNodes, RelationConstructorByRelations, RelationConstructorByQuery]
+    constructor_type: str
     primary_key: str
-    foreign_key: str
 
     @classmethod
     def from_dict(cls, obj: Any) -> Optional[Self]:
@@ -58,11 +111,17 @@ class Relation(ABC):
             return None
 
         _type = obj.get("type")
-        _from_node_label = obj.get("from_node_label")
-        _to_node_label = obj.get("to_node_label")
-        _primary_key = replace_undefined_value(obj.get("primary_key"), "ID")
-        _foreign_key = obj.get("foreign_key")
-        return cls(_include, _type, _from_node_label, _to_node_label, _primary_key, _foreign_key)
+
+        _constructed_by = RelationConstructorByNodes.from_dict(obj.get("constructed_by_nodes"))
+        if _constructed_by is None:
+            _constructed_by = RelationConstructorByRelations.from_dict(obj.get("constructed_by_relations"))
+        if _constructed_by is None:
+            _constructed_by = RelationConstructorByQuery.from_dict(obj.get("constructed_by_query"))
+
+        _constructor_type = _constructed_by.__class__.__name__
+
+        return cls(_include, _type, constructed_by=_constructed_by, constructor_type=_constructor_type,
+                   primary_key=_primary_key)
 
 
 @dataclass
@@ -209,14 +268,19 @@ class Log(ABC):
 class SemanticHeader(ABC):
     def __init__(self, name: str, version: str,
                  entities_derived_from_nodes: List[Entity], entities_derived_from_relations: List[Entity],
-                 entities_derived_from_query: List[Entity], relations: List[Relation], classes: List[Class], log: Log):
+                 entities_derived_from_query: List[Entity],
+                 relations_derived_from_nodes: List[Relation], relation_derived_from_relations: List[Relation],
+                 relations_derived_from_query: List[Relation],
+                 classes: List[Class], log: Log):
         self.name = name
         self.version = version
 
         self.entities_derived_from_nodes = entities_derived_from_nodes
         self.entities_derived_from_relations = entities_derived_from_relations
         self.entities_derived_from_query = entities_derived_from_query
-        self.relations = relations
+        self.relations_derived_from_nodes = relations_derived_from_nodes
+        self.relation_derived_from_relations = relation_derived_from_relations
+        self.relations_derived_from_query = relations_derived_from_query
         self.classes = classes
         self.log = log
 
@@ -244,10 +308,17 @@ class SemanticHeader(ABC):
         _entities_derived_from_query = [entity for entity in _entities if
                                         entity.constructor_type == "EntityConstructorByQuery"]
         _relations = create_list(relation_class_name, obj.get("relations"))
+        _relations_derived_from_nodes = [relation for relation in _relations if
+                                         relation.constructor_type == "RelationConstructorByNodes"]
+        _relations_derived_from_relations = [relation for relation in _relations if
+                                             relation.constructor_type == "RelationConstructorByRelations"]
+        _relations_derived_from_query = [relation for relation in _relations if
+                                         relation.constructor_type == "RelationConstructorByQuery"]
         _classes = create_list(class_class_name, obj.get("classes"))
         _log = log_class_name.from_dict(obj.get("log"))
-        return cls(_name, _version, _entities_derived_from_nodes, _entities_derived_from_relations,
-                   _entities_derived_from_query, _relations,
+        return cls(_name, _version,
+                   _entities_derived_from_nodes, _entities_derived_from_relations, _entities_derived_from_query,
+                   _relations_derived_from_nodes, _relations_derived_from_relations, _relations_derived_from_query,
                    _classes, _log)
 
     @classmethod

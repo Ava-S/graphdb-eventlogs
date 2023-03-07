@@ -44,9 +44,13 @@ class EntityLPG(Entity):
     def get_entity_attributes(self, node_name: str = "e"):
         #TODO: check what happens when entity does not exist
         primary_key_list = [f"{node_name}.{key} as {key}" for key in self.primary_keys]
-        entity_attribute_list = [f"COLLECT(distinct {node_name}.{attr}) as {attr}" for attr in
+        entity_attribute_list = [f"apoc.coll.flatten(COLLECT(distinct {node_name}.{attr})) as {attr}" for attr in
                                  self.entity_attributes_wo_primary_keys]
         complete_list = primary_key_list + entity_attribute_list
+        return ','.join(complete_list)
+
+    def get_entity_attribute_names(self):
+        complete_list = self.primary_keys + self.entity_attributes_wo_primary_keys
         return ','.join(complete_list)
 
     def get_entity_attributes_as_node_properties(self):

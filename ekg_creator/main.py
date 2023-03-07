@@ -12,7 +12,7 @@ from database_managers import authentication
 
 connection = authentication.connections_map[authentication.Connections.LOCAL]
 
-dataset_name = 'BPIC14'
+dataset_name = 'ECESample'
 use_sample = False
 
 semantic_header = SemanticHeaderLPG.create_semantic_header(dataset_name)
@@ -71,6 +71,7 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
 
     # for each entity, we add the entity nodes to graph and correlate them to the correct events
     graph.create_entities_by_nodes(node_label="Event")
+    graph.create_entities_by_nodes(node_label="Entity")
     perf.finished_step(log_message=f"(:Entity) nodes done")
 
     graph.correlate_events_to_entities(node_label="Event")
@@ -79,7 +80,7 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
     graph.create_classes()
     perf.finished_step(log_message=f"(:Class) nodes done")
 
-    graph.create_entity_relations()
+    graph.create_entity_relations_using_nodes()
     perf.finished_step(log_message=f"[:REL] edges done")
 
     graph.create_entities_by_relations()
