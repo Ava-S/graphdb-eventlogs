@@ -62,7 +62,6 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
     graph.import_data()
     perf.finished_step(log_message=f"(:Event) nodes done")
 
-    # TODO: constraints in semantic header?
     graph.set_constraints()
     perf.finished_step(log_message=f"All constraints are set")
 
@@ -87,8 +86,6 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
 
     graph.correlate_events_to_reification()
     perf.finished_step(log_message=f"[:CORR] edges for Reified (:Entity) nodes done")
-
-    graph.create_location_nodes()
 
     graph.add_attributes_to_classifier("IS", "ActivityType", ["type", "subtype", "entity"])
     entity = semantic_header.get_entity("Box")
