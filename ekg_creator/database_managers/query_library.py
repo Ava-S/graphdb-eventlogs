@@ -252,10 +252,15 @@ class CypherQueryLibrary:
         # find events that are related to different entities of which one event also has a reference to the other entity
         # create a relation between these two entities
         relation_type = relation.type
-        entity_label_from_node = relation.from_node_label
-        entity_label_to_node = relation.to_node_label
-        foreign_key = relation.foreign_key
-        primary_key = relation.primary_key
+        relation_constructor = relation.constructed_by
+        entity_label_from_node = relation_constructor.from_node_label
+        entity_label_to_node = relation_constructor.to_node_label
+        foreign_key = relation_constructor.foreign_key
+        _reversed = relation_constructor.reversed
+        arrow_left = "<-" if _reversed else "-"
+        arrow_right = "-" if _reversed else "->"
+
+        primary_key = relation.constructed_by.primary_key
 
         q_create_relation = f'''
                 CALL apoc.periodic.iterate(
@@ -263,10 +268,10 @@ class CypherQueryLibrary:
                 MATCH (tf:ForeignKey {{type:"{foreign_key}"}}) - [:KEY_{entity_label_from_node.upper()}] -> (_from:{entity_label_from_node})
                 MATCH (to:{entity_label_to_node} {{{primary_key}:tf.id}})
                 RETURN distinct to, _from',
-                'MERGE (_from) - [:{relation_type.upper()} {{type:"Rel",
+                'MERGE (_from) {arrow_left} [:{relation_type.upper()} {{type:"Rel",
                     {entity_label_from_node.lower()}Id: _from.ID,
                     {entity_label_to_node.lower()}Id: to.{primary_key}                                              
-                                                    }}]-> (to)',
+                                                    }}] {arrow_right} (to)',
                 {{batchSize: {batch_size}}})
                 '''
 
@@ -276,14 +281,15 @@ class CypherQueryLibrary:
     def create_foreign_key_relation(relation: RelationLPG) -> Query:
         # find events that are related to different entities of which one event also has a reference to the other entity
         # create a relation between these two entities
-        entity_label_from_node = relation.from_node_label
-        foreign_key = relation.foreign_key
+        entity_label_from_node = relation.constructed_by.from_node_label
+        foreign_key = relation.constructed_by.foreign_key
 
         q_create_relation = f'''
             MATCH (_from:{entity_label_from_node})
             WITH _from, _from.{foreign_key} as foreign_keys
             UNWIND foreign_keys as foreign_key
-            MERGE (_from) <- [:KEY_{entity_label_from_node.upper()}] - (tf:ForeignKey {{id:foreign_key, type:'{foreign_key}'}})
+            MERGE (_from) <- [:KEY_{entity_label_from_node.upper()}] - (tf:ForeignKey 
+                {{id:foreign_key, type:'{foreign_key}'}})
             '''
 
         return Query(query_string=q_create_relation, kwargs={})
@@ -292,7 +298,7 @@ class CypherQueryLibrary:
     def merge_foreign_key_nodes(relation: RelationLPG) -> Query:
         # find events that are related to different entities of which one event also has a reference to the other entity
         # create a relation between these two entities
-        foreign_key = relation.foreign_key
+        foreign_key = relation.constructed_by.foreign_key
 
         q_create_relation = f'''
             MATCH (tf:ForeignKey {{type:'{foreign_key}'}})
@@ -306,7 +312,7 @@ class CypherQueryLibrary:
 
     @staticmethod
     def get_delete_foreign_nodes_query(relation: RelationLPG) -> Query:
-        foreign_key = relation.foreign_key
+        foreign_key = relation.constructed_by.foreign_key
 
         q_string = f'''
                     MATCH (tf:ForeignKey {{type:'{foreign_key}'}})

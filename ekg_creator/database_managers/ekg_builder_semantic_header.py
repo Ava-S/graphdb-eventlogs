@@ -47,27 +47,30 @@ class EKGUsingSemanticHeaderBuilder:
                 self._write_message_to_performance(
                     f"Relation (:Event) - [:CORR] -> (:{entity.get_label_string()}) created")
 
-    def create_entity_relations(self) -> None:
+    def create_entity_relations_using_nodes(self) -> None:
         # find events that are related to different entities of which one event also has a reference to the other entity
         # create a relation between these two entities
         relation: RelationLPG
-        for relation in self.semantic_header.relations:
+        for relation in self.semantic_header.relations_derived_from_nodes:
             if relation.include:
                 self.create_foreign_nodes(relation)
-                self.connection.exec_query(CypherQueryLibrary.get_create_entity_relationships_query,
-                                           **{"relation": relation,
-                                              "batch_size": self.batch_size})
+                self.create_relations_using_nodes(relation)
                 self.delete_foreign_nodes(relation)
 
                 self._write_message_to_performance(
-                    message=f"Relation (:{relation.from_node_label}) - [:{relation.type}] -> "
-                            f"(:{relation.to_node_label}) done")
+                    message=f"Relation (:{relation.constructed_by.from_node_label}) - [:{relation.type}] -> "
+                            f"(:{relation.constructed_by.to_node_label}) done")
 
     def create_foreign_nodes(self, relation: RelationLPG):
         self.connection.exec_query(CypherQueryLibrary.create_foreign_key_relation,
                                    **{"relation": relation})
         self.connection.exec_query(CypherQueryLibrary.merge_foreign_key_nodes,
                                    **{"relation": relation})
+
+    def create_relations_using_nodes(self, relation: RelationLPG):
+        self.connection.exec_query(CypherQueryLibrary.get_create_entity_relationships_query,
+                                   **{"relation": relation,
+                                      "batch_size": self.batch_size})
 
     def delete_foreign_nodes(self, relation: RelationLPG):
         self.connection.exec_query(CypherQueryLibrary.get_delete_foreign_nodes_query,

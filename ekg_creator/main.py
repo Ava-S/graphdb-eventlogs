@@ -62,6 +62,7 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
     graph.import_data()
     perf.finished_step(log_message=f"(:Event) nodes done")
 
+    # TODO: constraints in semantic header?
     graph.set_constraints()
     perf.finished_step(log_message=f"All constraints are set")
 
@@ -70,6 +71,7 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
 
     # for each entity, we add the entity nodes to graph and correlate them to the correct events
     graph.create_entities_by_nodes(node_label="Event")
+    graph.create_entities_by_nodes(node_label="Entity")
     perf.finished_step(log_message=f"(:Entity) nodes done")
 
     graph.correlate_events_to_entities(node_label="Event")
@@ -78,7 +80,7 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
     graph.create_classes()
     perf.finished_step(log_message=f"(:Class) nodes done")
 
-    graph.create_entity_relations()
+    graph.create_entity_relations_using_nodes()
     perf.finished_step(log_message=f"[:REL] edges done")
 
     graph.create_entities_by_relations()
