@@ -44,7 +44,7 @@
             "name": "box"
           }
         ],
-        "mandatory": true
+        "mandatory": false
       },
       {
         "name": "batchPositionId",

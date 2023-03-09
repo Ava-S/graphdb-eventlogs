@@ -622,17 +622,16 @@ class CypherQueryLibrary:
             MATCH (e1:Event) - [:CORR] -> (n:$entity)
             MATCH (e1) - [:CORR] ->  (equipment:Equipment)
             MATCH (e1) - [:OBSERVED] -> (:Class) - [:AT] - (:LocationType) - [:PART_OF*0..] -> (l:LocationType) 
-            MATCH (l) - [:AT] - (c:Class  {type: "physical", subtype: "$subtype", entity: "$entity"})
-            WITH e1, c, equipment, n
-            CALL {WITH e1, c, equipment
-                MATCH ($load_event_type:Event) - [:OBSERVED] -> (c) 
+            WITH e1, l, equipment, n
+            CALL {WITH e1, l, equipment
+                MATCH ($load_event_type:Event) - [:OBSERVED] -> (c: Class  {type: "physical", subtype: "$subtype", entity: "$entity"})  
+                MATCH (l) - [:AT] - (c)
                 MATCH ($load_event_type) - [:CORR] ->  (equipment)
-                WHERE $load_event_type.timestamp $comparison e1.timestamp AND $load_event_type.$entity_id = "Unknown"
+                WHERE $load_event_type.timestamp $comparison e1.timestamp AND $load_event_type.$entity_id IS NULL
                 RETURN $load_event_type as $load_event_type_first
                 ORDER BY $load_event_type.timestamp $order_type
                 LIMIT 1}
             MERGE ($load_event_type_first) - [:CORR] -> (n)
-            REMOVE $load_event_type_first.$entity_id
             '''
 
         subtype = "load" if is_load else "unload"
@@ -652,14 +651,14 @@ class CypherQueryLibrary:
     def infer_items_to_events_using_location_batch_to_single(entity: EntityLPG) -> Query:
         query_str = '''
             MATCH (e2:Event) - [:CORR] -> (b:BatchPosition)
-            WHERE e2.$entity_id="Unknown"
+            WHERE e2.$entity_id IS NULL
             MATCH (e2) - [:CORR] -> (equipment :Equipment)
-            MATCH (e2) - [:OBSERVED] -> (c_other:Class) <-[:AT]- (:LocationType) - [:PART_OF*0..] -> (l:LocationType) 
-            MATCH (l) - [:AT] -> (c_load:Class) - [:IS] 
+            MATCH (e2) - [:OBSERVED] -> (c_other:Class {entity: "$entity"}) <-[:AT]- (:LocationType) - [:PART_OF*0..] -> (l:LocationType) 
+            WITH e2, equipment, l, b
+            CALL {WITH e2, equipment ,l
+                MATCH (e0: Event)-[:OBSERVED]->(c_load:Class) - [:IS] 
                     - (:ActivityType {type:"physical", subtype: "load", entity:"$entity"})
-            WITH e2, equipment, c_load, b
-            CALL {WITH e2, equipment ,c_load
-                MATCH (e0: Event)-[:OBSERVED]->(c_load)
+                MATCH (l) - [:AT] -> (c_load)
                 MATCH (e0)-[:CORR]->(resource)
                 WHERE e0.timestamp <= e2.timestamp
                 // find the first preceding e0
@@ -671,7 +670,6 @@ class CypherQueryLibrary:
             WITH e2, [(e0_first_prec)-[:CORR]->(n:$entity)- [:AT_POS] -> (b) | n] as related_n
             FOREACH (n in related_n | 
                 MERGE (e2) - [:CORR] -> (n)
-                REMOVE e2.$entity_id
             )
         '''
 
@@ -683,14 +681,14 @@ class CypherQueryLibrary:
     def infer_items_to_events_using_location_single_to_single(entity: EntityLPG) -> Query:
         query_str = '''
                     MATCH (e1 :Event) - [:CORR] -> (equipment :Equipment)
-                    WHERE e1.$entity_id="Unknown"
-                    MATCH (e1) - [:OBSERVED] -> (c_other:Class) <-[:AT]- (l:LocationType) 
-                    MATCH (l) - [:AT] -> (c_load:Class) - [:IS] 
+                    WHERE e1.$entity_id IS NULL
+                    MATCH (e1) - [:OBSERVED] -> (c_other:Class {entity: "$entity"}) <-[:AT]- (l:LocationType) 
+                    WITH e1, equipment, l
+                    CALL {WITH e1, equipment, l
+                        MATCH (e0: Event)-[:OBSERVED]->(c_load:Class) - [:IS] 
                             - (:ActivityType {type:"physical", subtype: "load", entity:"$entity"})
-                    WITH e1, equipment, c_load
-                    CALL {WITH e1, equipment ,c_load
-                        MATCH (e0: Event)-[:OBSERVED]->(c_load)
-                        MATCH (e0)-[:CORR]->(resource)
+                        MATCH (l) - [:AT] -> (c_load)
+                        MATCH (e0)-[:CORR]->(equipment)
                         WHERE e0.timestamp <= e1.timestamp
                         // find the first preceding e0
                         RETURN e0 as e0_first_prec
@@ -701,7 +699,6 @@ class CypherQueryLibrary:
                     WITH e1, [(e0_first_prec)-[:CORR]->(n:$entity) | n] as related_n
                     FOREACH (n in related_n | 
                         MERGE (e1) - [:CORR] -> (n)
-                        REMOVE e1.$entity_id
                     )
                     '''
 
