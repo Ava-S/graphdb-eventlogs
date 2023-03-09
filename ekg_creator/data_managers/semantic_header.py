@@ -100,7 +100,6 @@ class Relation(ABC):
     type: str
     constructed_by: Union[RelationConstructorByNodes, RelationConstructorByRelations, RelationConstructorByQuery]
     constructor_type: str
-    primary_key: str
 
     @classmethod
     def from_dict(cls, obj: Any) -> Optional[Self]:
@@ -120,8 +119,7 @@ class Relation(ABC):
 
         _constructor_type = _constructed_by.__class__.__name__
 
-        return cls(_include, _type, constructed_by=_constructed_by, constructor_type=_constructor_type,
-                   primary_key=_primary_key)
+        return cls(_include, _type, constructed_by=_constructed_by, constructor_type=_constructor_type)
 
 
 @dataclass

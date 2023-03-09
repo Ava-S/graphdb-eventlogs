@@ -627,11 +627,12 @@ class CypherQueryLibrary:
         query_str = '''
             MATCH (e1:Event) - [:CORR] -> (n:$entity)
             MATCH (e1) - [:CORR] ->  (equipment:Equipment)
-            MATCH (e1) - [:OBSERVED] -> (:Class) - [:AT] - (:LocationType) - [:PART_OF*0..] -> (l:LocationType) 
+            MATCH (e1) - [:OBSERVED] -> (:Class) - [:AT] -> (:LocationType) - [:PART_OF*0..] -> (l:LocationType) 
             WITH e1, l, equipment, n
             CALL {WITH e1, l, equipment
-                MATCH ($load_event_type:Event) - [:OBSERVED] -> (c: Class  {type: "physical", subtype: "$subtype", entity: "$entity"})  
-                MATCH (l) - [:AT] - (c)
+                MATCH ($load_event_type:Event) - [:OBSERVED] -> (c: Class)
+                MATCH (c) - [:IS] -> (:ActivityType {type: "physical", subtype: "$subtype", entity: "$entity"})  
+                MATCH (c) - [:AT] -> (l)
                 MATCH ($load_event_type) - [:CORR] ->  (equipment)
                 WHERE $load_event_type.timestamp $comparison e1.timestamp AND $load_event_type.$entity_id IS NULL
                 RETURN $load_event_type as $load_event_type_first
@@ -659,12 +660,13 @@ class CypherQueryLibrary:
             MATCH (e2:Event) - [:CORR] -> (b:BatchPosition)
             WHERE e2.$entity_id IS NULL
             MATCH (e2) - [:CORR] -> (equipment :Equipment)
-            MATCH (e2) - [:OBSERVED] -> (c_other:Class {entity: "$entity"}) <-[:AT]- (:LocationType) - [:PART_OF*0..] -> (l:LocationType) 
+            MATCH (e2) - [:OBSERVED] -> (c_other:Class) -[:AT]-> (:LocationType) - [:PART_OF*0..] -> (l:LocationType) 
+            MATCH (c_other) - [:IS] -> (:ActivityType {entity: "$entity"}) 
             WITH e2, equipment, l, b
             CALL {WITH e2, equipment ,l
                 MATCH (e0: Event)-[:OBSERVED]->(c_load:Class) - [:IS] 
-                    - (:ActivityType {type:"physical", subtype: "load", entity:"$entity"})
-                MATCH (l) - [:AT] -> (c_load)
+                    -> (:ActivityType {type:"physical", subtype: "load", entity:"$entity"})
+                MATCH (c_load) - [:AT] -> (l)
                 MATCH (e0)-[:CORR]->(resource)
                 WHERE e0.timestamp <= e2.timestamp
                 // find the first preceding e0
@@ -688,12 +690,13 @@ class CypherQueryLibrary:
         query_str = '''
                     MATCH (e1 :Event) - [:CORR] -> (equipment :Equipment)
                     WHERE e1.$entity_id IS NULL
-                    MATCH (e1) - [:OBSERVED] -> (c_other:Class {entity: "$entity"}) <-[:AT]- (l:LocationType) 
+                    MATCH (e1) - [:OBSERVED] -> (c_other:Class) -[:AT]-> (l:LocationType)
+                    MATCH (c_other) - [:IS] -> (:ActivityType {entity: "$entity"}) 
                     WITH e1, equipment, l
                     CALL {WITH e1, equipment, l
                         MATCH (e0: Event)-[:OBSERVED]->(c_load:Class) - [:IS] 
-                            - (:ActivityType {type:"physical", subtype: "load", entity:"$entity"})
-                        MATCH (l) - [:AT] -> (c_load)
+                            -> (:ActivityType {type:"physical", subtype: "load", entity:"$entity"})
+                        MATCH (c_load) - [:AT] -> (l)
                         MATCH (e0)-[:CORR]->(equipment)
                         WHERE e0.timestamp <= e1.timestamp
                         // find the first preceding e0
