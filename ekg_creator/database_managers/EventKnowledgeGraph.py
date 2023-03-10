@@ -73,6 +73,9 @@ class EventKnowledgeGraph:
     def create_entity_relations_using_nodes(self) -> None:
         self.ekg_builder.create_entity_relations_using_nodes()
 
+    def create_entity_relations_using_relations(self) -> None:
+        self.ekg_builder.create_entity_relations_using_relations()
+
     def create_entities_by_relations(self) -> None:
         self.ekg_builder.create_entities_by_relations()
 

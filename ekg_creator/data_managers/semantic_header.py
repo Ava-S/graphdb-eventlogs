@@ -66,18 +66,27 @@ class RelationConstructorByNodes(ABC):
 
 @dataclass
 class RelationConstructorByRelations(ABC):
-    relation_type: str
-    conditions: List[Condition]
+    antecedents: List[str]
+    consequent: str
+    from_node_name: str
+    to_node_name: str
+    from_node_label: str
+    to_node_label: str
 
     @classmethod
-    def from_dict(cls, obj: Any, condition_class_name: Condition = Condition) -> Optional[Self]:
+    def from_dict(cls, obj: Any) -> Optional[Self]:
         if obj is None:
             return None
 
-        _relation_type = obj.get("relation_type")
-        _conditions = create_list(condition_class_name, obj.get("conditions"))
+        _antecedents = obj.get("antecedents")
+        _consequent = obj.get("consequent")
+        _from_node_name = obj.get("from_node_name")
+        _to_node_name = obj.get("to_node_name")
+        _from_node_label = obj.get("from_node_label")
+        _to_node_label = obj.get("to_node_label")
 
-        return cls(relation_type=_relation_type, conditions=_conditions)
+        return cls(antecedents=_antecedents, consequent=_consequent, from_node_name=_from_node_name,
+                   to_node_name=_to_node_name, from_node_label=_from_node_label, to_node_label=_to_node_label)
 
 
 @dataclass
@@ -100,7 +109,6 @@ class Relation(ABC):
     type: str
     constructed_by: Union[RelationConstructorByNodes, RelationConstructorByRelations, RelationConstructorByQuery]
     constructor_type: str
-    primary_key: str
 
     @classmethod
     def from_dict(cls, obj: Any) -> Optional[Self]:
@@ -120,8 +128,7 @@ class Relation(ABC):
 
         _constructor_type = _constructed_by.__class__.__name__
 
-        return cls(_include, _type, constructed_by=_constructed_by, constructor_type=_constructor_type,
-                   primary_key=_primary_key)
+        return cls(_include, _type, constructed_by=_constructed_by, constructor_type=_constructor_type)
 
 
 @dataclass

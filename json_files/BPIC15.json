@@ -82,15 +82,19 @@
   "relations": [
     {
       "type": "SAME_RESOURCE",
-      "from_node_label": "ResponsibleActor",
-      "foreign_key": "responsibleActor",
-      "to_node_label": "CaseR"
+      "constructed_by_nodes": {
+        "from_node_label": "ResponsibleActor",
+        "foreign_key": "responsibleActor",
+        "to_node_label": "CaseR"
+      }
     },
     {
       "type": "SAME_RESOURCE",
-      "from_node_label": "MonitoringResource",
-      "foreign_key": "monitoringResource",
-      "to_node_label": "CaseR"
+      "constructed_by_nodes": {
+        "from_node_label": "MonitoringResource",
+        "foreign_key": "monitoringResource",
+        "to_node_label": "CaseR"
+      }
     }
   ],
   "classes": [

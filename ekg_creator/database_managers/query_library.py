@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, Any, List
+import re
 
 from data_managers.datastructures import DataStructure
 from data_managers.semantic_header_lpg import EntityLPG, RelationLPG, ClassLPG
@@ -247,6 +248,45 @@ class CypherQueryLibrary:
             MERGE (e)-[:CORR]->(r)'''
 
         return Query(query_string=q_correlate, kwargs={})
+
+    @staticmethod
+    def get_create_relation_by_relations_query(relation: RelationLPG, batch_size: int):
+        relation_constructor = relation.constructed_by
+        relation_type = relation.type
+
+        antecedents = relation_constructor.antecedents
+        from_node = relation_constructor.from_node_name
+        to_node = relation_constructor.to_node_name
+
+        antecedents = [f"MATCH {antecedent}" for antecedent in antecedents]
+        antecedents = "\n".join(antecedents)
+
+        from_node_id = relation_constructor.from_node_label
+        first_lower_case = re.search("[a-z]", from_node_id).start()
+        from_node_id = from_node_id[:first_lower_case].lower() + from_node_id[first_lower_case + 1:] + "Id"
+
+        to_node_id = relation_constructor.to_node_label
+        first_lower_case = re.search("[a-z]", to_node_id).start()
+        to_node_id = to_node_id[:first_lower_case].lower() + to_node_id[first_lower_case + 1:] + "Id"
+
+        query_str = '''
+                        CALL apoc.periodic.iterate(
+                        '
+                        $antecedents
+                        RETURN distinct $from_node, $to_node',
+                        'MERGE ($from_node) - [:$type {type:"Rel",
+                            $from_node_id: $from_node.ID,
+                            $to_node_id: $to_node.ID                                             
+                                                            }] -> ($to_node)',
+                        {batchSize: $batch_size})
+                        '''
+
+        query_str = Template(query_str).substitute(antecedents=antecedents, from_node=from_node, to_node=to_node,
+                                                   type=relation_type,
+                                                   from_node_id=from_node_id, to_node_id=to_node_id,
+                                                   batch_size=batch_size)
+
+        return Query(query_string=query_str, kwargs={})
 
     @staticmethod
     def get_create_entity_relationships_query(relation: RelationLPG, batch_size: int) -> Query:
@@ -622,7 +662,3 @@ class CypherQueryLibrary:
         query_str = Template(query_str).substitute(relation=relation, label=label, properties=properties)
 
         return Query(query_string=query_str, kwargs={})
-
-
-
-

@@ -76,6 +76,13 @@ class EKGUsingSemanticHeaderBuilder:
         self.connection.exec_query(CypherQueryLibrary.get_delete_foreign_nodes_query,
                                    **{"relation": relation})
 
+    def create_entity_relations_using_relations(self) -> None:
+        relation: RelationLPG
+        for relation in self.semantic_header.relation_derived_from_relations:
+            if relation.include:
+                self.connection.exec_query(CypherQueryLibrary.get_create_relation_by_relations_query,
+                                           **{"relation": relation,
+                                              "batch_size": self.batch_size})
 
     def create_entities_by_relations(self) -> None:
         relation: RelationLPG
