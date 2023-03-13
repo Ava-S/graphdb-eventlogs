@@ -254,34 +254,30 @@ class CypherQueryLibrary:
         relation_constructor = relation.constructed_by
         relation_type = relation.type
 
-        antecedents = relation_constructor.antecedents
-        from_node = relation_constructor.from_node_name
-        to_node = relation_constructor.to_node_name
+        antecedents_query = relation_constructor.get_antecedent_query()
+        from_node_name = relation_constructor.get_from_node_name()
+        to_node_name = relation_constructor.get_to_node_name()
 
-        antecedents = [f"MATCH {antecedent}" for antecedent in antecedents]
-        antecedents = "\n".join(antecedents)
-
-        from_node_id = relation_constructor.from_node_label
+        from_node_id = relation_constructor.get_from_node_label()
         first_lower_case = re.search("[a-z]", from_node_id).start()
         from_node_id = from_node_id[:first_lower_case].lower() + from_node_id[first_lower_case + 1:] + "Id"
 
-        to_node_id = relation_constructor.to_node_label
+        to_node_id = relation_constructor.get_to_node_label()
         first_lower_case = re.search("[a-z]", to_node_id).start()
         to_node_id = to_node_id[:first_lower_case].lower() + to_node_id[first_lower_case + 1:] + "Id"
 
         query_str = '''
                         CALL apoc.periodic.iterate(
                         '
-                        $antecedents
+                        $antecedents_query
                         RETURN distinct $from_node, $to_node',
                         'MERGE ($from_node) - [:$type {type:"Rel",
                             $from_node_id: $from_node.ID,
-                            $to_node_id: $to_node.ID                                             
-                                                            }] -> ($to_node)',
+                            $to_node_id: $to_node.ID}] -> ($to_node)',
                         {batchSize: $batch_size})
                         '''
 
-        query_str = Template(query_str).substitute(antecedents=antecedents, from_node=from_node, to_node=to_node,
+        query_str = Template(query_str).substitute(antecedents_query=antecedents_query, from_node=from_node_name, to_node=to_node_name,
                                                    type=relation_type,
                                                    from_node_id=from_node_id, to_node_id=to_node_id,
                                                    batch_size=batch_size)

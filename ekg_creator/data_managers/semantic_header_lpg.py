@@ -1,7 +1,9 @@
 from dataclasses import dataclass
+from string import Template
 from typing import Optional, Any, Self
 
-from data_managers.semantic_header import SemanticHeader, Entity, Relation, Class, Log, Condition
+from data_managers.semantic_header import SemanticHeader, Entity, Relation, Class, Log, Condition, \
+    RelationConstructorByRelations, Node, Relationship
 
 
 @dataclass
@@ -17,8 +19,63 @@ class ConditionLPG(Condition):
             return [f'''= "{include_value}"''' for include_value in self.values]
 
 
+class NodeLPG(Node):
+    def get_node_pattern(self):
+        if self.node_label != "":
+            node_pattern = "($node_name: $node_label)"
+            node_pattern = Template(node_pattern).substitute(node_name=self.node_name,
+                                                             node_label=self.node_label)
+        else:
+            node_pattern = "($node_name)"
+            node_pattern = Template(node_pattern).substitute(node_name=self.node_name)
+        return node_pattern
+
+
+class RelationshipLPG(Relationship):
+    def get_relationship_pattern(self):
+        from_node_pattern = self.from_node.get_node_pattern()
+        to_node_pattern = self.to_node.get_node_pattern()
+        if self.relation_type != "":
+            relationship_pattern = "$from_node - [$relation_name:$relation_type] -> $to_node" if self.has_direction \
+                else "$from_node - [$relation_name:$relation_type] - $to_node"
+            relationship_pattern = Template(relationship_pattern).substitute(from_node=from_node_pattern,
+                                                                             to_node=to_node_pattern,
+                                                                             relation_name=self.relation_name,
+                                                                             relation_type = self.relation_type)
+        else:
+            relationship_pattern = "$from_node - [$relation_name] -> $to_node" if self.has_direction \
+                else "$from_node - [$relation_name] - $to_node"
+            relationship_pattern = Template(relationship_pattern).substitute(from_node=from_node_pattern,
+                                                                             to_node=to_node_pattern,
+                                                                             relation_name=self.relation_name)
+        return relationship_pattern
+
+
+    @classmethod
+    def from_string(cls, relation_description: str, node_class: NodeLPG):
+        return super().from_string(relation_description, node_class)
+
+
+class RelationConstructorByRelationsLPG(RelationConstructorByRelations):
+
+    def get_antecedent_query(self):
+        antecedents = self.antecedents
+
+        antecedents_query = [f"MATCH {antecedent.get_relationship_pattern()}" for antecedent in antecedents]
+        antecedents_query = "\n".join(antecedents_query)
+        return antecedents_query
+
+    @classmethod
+    def from_dict(cls, obj: Any, relationship_class: RelationshipLPG, node_class: NodeLPG) -> Optional[Self]:
+        return super().from_dict(obj, relationship_class, node_class)
+
+
 class RelationLPG(Relation):
-    pass
+    @classmethod
+    def from_dict(cls, obj: Any, constructor_by_relation_class: RelationConstructorByRelationsLPG,
+                  relation_class: RelationshipLPG,
+                  node_class: NodeLPG) -> Optional[Self]:
+        return super().from_dict(obj, constructor_by_relation_class, relation_class, node_class)
 
 
 @dataclass
@@ -42,7 +99,7 @@ class EntityLPG(Entity):
         return "+\"-\"+".join([f"{node_name}.{key}" for key in self.primary_keys])
 
     def get_entity_attributes(self, node_name: str = "e"):
-        #TODO: check what happens when entity does not exist
+        # TODO: check what happens when entity does not exist
         primary_key_list = [f"{node_name}.{key} as {key}" for key in self.primary_keys]
         entity_attribute_list = [f"apoc.coll.flatten(COLLECT(distinct {node_name}.{attr})) as {attr}" for attr in
                                  self.entity_attributes_wo_primary_keys]
@@ -125,7 +182,7 @@ class ClassLPG(Class):
 
         return node_properties
 
-    def get_link_condition(self, class_node_name="c", event_node_name = "e"):
+    def get_link_condition(self, class_node_name="c", event_node_name="e"):
         return ' AND '.join([f"{class_node_name}.{key} = {event_node_name}.{key}" for key in self.class_identifiers])
 
     def get_class_label(self):
@@ -141,10 +198,16 @@ class SemanticHeaderLPG(SemanticHeader):
     def from_dict(cls, obj: Any, derived_entity_class_name: Entity = EntityLPG,
                   reified_entity_class_name: Entity = EntityLPG,
                   relation_class_name: Relation = RelationLPG,
+                  relation_constructor_class_name: RelationConstructorByRelations = RelationConstructorByRelationsLPG,
+                  relationship_class: Relationship = RelationshipLPG,
+                  node_class: Node = NodeLPG,
                   class_class_name: Class = ClassLPG,
                   log_class_name: Log = LogLPG) -> Optional[Self]:
         return super().from_dict(obj, derived_entity_class_name=derived_entity_class_name,
                                  reified_entity_class_name=reified_entity_class_name,
                                  relation_class_name=relation_class_name,
+                                 relation_constructor_class_name=relation_constructor_class_name,
+                                 relationship_class=relationship_class,
+                                 node_class=node_class,
                                  class_class_name=class_class_name,
                                  log_class_name=log_class_name)

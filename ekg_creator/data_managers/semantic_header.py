@@ -5,6 +5,7 @@ from typing import List, Any, Optional, Self, Union
 from dataclasses import dataclass
 
 from utilities.auxiliary_functions import replace_undefined_value, create_list
+import re
 
 
 @dataclass
@@ -64,29 +65,109 @@ class RelationConstructorByNodes(ABC):
                    reversed=_reversed)
 
 
+@dataclass()
+class Node(ABC):
+    node_name: str
+    node_label: str
+    properties: List[Any]
+
+    @classmethod
+    def from_string(cls, node_description: str) -> Optional[Self]:
+        # we expect a node to be described in (node_name:Node_label)
+        node_description = re.sub(r"[() ]", "", node_description)
+        node_components = node_description.split(":")
+        node_name = node_components[0]
+        node_label = ""
+        if len(node_components) > 1:
+            node_label = node_components[1]
+        return cls(node_name=node_name, node_label=node_label, properties=None)
+
+    def get_node_pattern(self):
+        pass
+
+
+@dataclass()
+class Relationship(ABC):
+    relation_name: str
+    relation_type: str
+    from_node: Node
+    to_node: Node
+    properties: List[Any]
+    has_direction: bool
+
+    @classmethod
+    def from_string(cls, relation_description: str, node_class: Node) -> Optional[Self]:
+        # we expect a node to be described in (node_name:Node_label)
+        relation_directions = {
+            "left-to-right": {"has_direction": True, "from_node": 0, "to_node": 1},
+            "right-to-left": {"has_direction": True, "from_node": 1, "to_node": 0},
+            "undefined": {"has_direction": False, "from_node": 0, "to_node": 1}
+        }
+
+        nodes = re.findall(r'\(.*?\)', relation_description)
+        _relation_string = re.findall(r'\[.*?\]', relation_description)[0]
+        _relation_string = re.sub(r"[\[\]]", "", _relation_string)
+        _relation_components = _relation_string.split(":")
+        _relation_name = _relation_components[0]
+        _relation_type = _relation_components[1]
+
+        if ">" in relation_description:
+            direction = "left-to-right"
+        elif "<" in relation_description:
+            direction = "right-to-left"
+        else:
+            direction = "undefined"
+
+        _has_direction = relation_directions[direction]["has_direction"]
+        _from_node = node_class.from_string(nodes[relation_directions[direction]["from_node"]])
+        _to_node = node_class.from_string(nodes[relation_directions[direction]["to_node"]])
+
+        return cls(relation_name=_relation_name, relation_type=_relation_type,
+                   from_node=_from_node, to_node=_to_node, properties=[], has_direction=_has_direction)
+
+    def get_relationship_pattern(self):
+        pass
+
+
 @dataclass
 class RelationConstructorByRelations(ABC):
-    antecedents: List[str]
-    consequent: str
+    antecedents: List[Relationship]
+    consequent: Relationship
     from_node_name: str
     to_node_name: str
     from_node_label: str
     to_node_label: str
 
     @classmethod
-    def from_dict(cls, obj: Any) -> Optional[Self]:
+    def from_dict(cls, obj: Any, relationship_class: Relationship, node_class: Node) -> Optional[Self]:
         if obj is None:
             return None
 
-        _antecedents = obj.get("antecedents")
-        _consequent = obj.get("consequent")
-        _from_node_name = obj.get("from_node_name")
-        _to_node_name = obj.get("to_node_name")
-        _from_node_label = obj.get("from_node_label")
-        _to_node_label = obj.get("to_node_label")
+        _antecedents = [relationship_class.from_string(y, node_class) for y in obj.get("antecedents")]
+        _consequent = relationship_class.from_string(obj.get("consequent"), node_class)
+
+        _from_node_name = _consequent.from_node.node_name
+        _to_node_name = _consequent.to_node.node_name
+        _from_node_label = _consequent.from_node.node_label
+        _to_node_label = _consequent.to_node.node_label
 
         return cls(antecedents=_antecedents, consequent=_consequent, from_node_name=_from_node_name,
                    to_node_name=_to_node_name, from_node_label=_from_node_label, to_node_label=_to_node_label)
+
+    def get_from_node_name(self):
+        return self.consequent.from_node.node_name
+
+    def get_to_node_name(self):
+        return self.consequent.to_node.node_name
+
+    def get_from_node_label(self):
+        return self.consequent.from_node.node_label
+
+    def get_to_node_label(self):
+        return self.consequent.to_node.node_label\
+
+    def get_antecedent_query(self):
+        pass
 
 
 @dataclass
@@ -111,7 +192,8 @@ class Relation(ABC):
     constructor_type: str
 
     @classmethod
-    def from_dict(cls, obj: Any) -> Optional[Self]:
+    def from_dict(cls, obj: Any, constructor_by_relation_class: RelationConstructorByRelations,
+                  relationship_class: Relationship, node_class: Node) -> Optional[Self]:
         if obj is None:
             return None
         _include = replace_undefined_value(obj.get("include"), True)
@@ -122,7 +204,8 @@ class Relation(ABC):
 
         _constructed_by = RelationConstructorByNodes.from_dict(obj.get("constructed_by_nodes"))
         if _constructed_by is None:
-            _constructed_by = RelationConstructorByRelations.from_dict(obj.get("constructed_by_relations"))
+            _constructed_by = constructor_by_relation_class.from_dict(obj.get("constructed_by_relations"),
+                                                                      relationship_class, node_class)
         if _constructed_by is None:
             _constructed_by = RelationConstructorByQuery.from_dict(obj.get("constructed_by_query"))
 
@@ -302,6 +385,9 @@ class SemanticHeader(ABC):
     def from_dict(cls, obj: Any, derived_entity_class_name: Entity = Entity,
                   reified_entity_class_name: Entity = Entity,
                   relation_class_name: Relation = Relation,
+                  relation_constructor_class_name: RelationConstructorByRelations = RelationConstructorByRelations,
+                  relationship_class : Relationship = Relationship,
+                  node_class : Node = Node,
                   class_class_name: Class = Class, log_class_name: Log = Log) -> Optional[Self]:
         if obj is None:
             return None
@@ -314,11 +400,11 @@ class SemanticHeader(ABC):
                                             entity.constructor_type == "EntityConstructorByRelation"]
         _entities_derived_from_query = [entity for entity in _entities if
                                         entity.constructor_type == "EntityConstructorByQuery"]
-        _relations = create_list(relation_class_name, obj.get("relations"))
+        _relations = create_list(relation_class_name, obj.get("relations"), relation_constructor_class_name, relationship_class, node_class)
         _relations_derived_from_nodes = [relation for relation in _relations if
                                          relation.constructor_type == "RelationConstructorByNodes"]
         _relations_derived_from_relations = [relation for relation in _relations if
-                                             relation.constructor_type == "RelationConstructorByRelations"]
+                                             "RelationConstructorByRelations" in relation.constructor_type]
         _relations_derived_from_query = [relation for relation in _relations if
                                          relation.constructor_type == "RelationConstructorByQuery"]
         _classes = create_list(class_class_name, obj.get("classes"))
