@@ -109,6 +109,8 @@ class Sample:
         _size = obj.get("size")
         _ids = obj.get("ids")
 
+        return Sample(_file_name, _use_random_sample, _population_column, _size, _ids)
+
 
 class DataStructure:
     def __init__(self, include: bool, name: str, file_directory: str, file_names: List[str], labels: List[str],

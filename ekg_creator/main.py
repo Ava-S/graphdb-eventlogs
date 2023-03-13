@@ -1,5 +1,6 @@
 import os
 
+from data_managers.interpreters import Interpreter
 from database_managers.EventKnowledgeGraph import EventKnowledgeGraph, DatabaseConnection
 from data_managers.datastructures import ImportedDataStructures
 from data_managers.semantic_header_lpg import SemanticHeaderLPG
@@ -13,9 +14,10 @@ from database_managers import authentication
 connection = authentication.connections_map[authentication.Connections.LOCAL]
 
 dataset_name = 'BPIC14'
-use_sample = False
+use_sample = True
 
-semantic_header = SemanticHeaderLPG.create_semantic_header(dataset_name)
+query_interpreter = Interpreter("Cypher")
+semantic_header = SemanticHeaderLPG.create_semantic_header(dataset_name, query_interpreter)
 perf_path = os.path.join("..", "perf", dataset_name, f"{dataset_name}Performance.csv")
 number_of_steps = 100
 
