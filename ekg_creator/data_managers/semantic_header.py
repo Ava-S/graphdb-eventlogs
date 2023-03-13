@@ -4,41 +4,63 @@ from typing import List, Any, Optional, Self, Union
 
 from dataclasses import dataclass
 
+from data_managers.interpreters import Interpreter
 from utilities.auxiliary_functions import replace_undefined_value, create_list
 import re
 
 
 @dataclass
-class Class(ABC):
+class Class():
     label: str
     class_identifiers: List[str]
     ids: List[str]
+    query_interpreter: Any
 
     @classmethod
-    def from_dict(cls, obj: Any) -> Optional[Self]:
+    def from_dict(cls, obj: Any, query_interpreter) -> Optional[Self]:
         if obj is None:
             return None
         _label = obj.get("label")
         _class_identifiers = obj.get("class_identifiers")
         _ids = obj.get("ids")
-        return cls(_label, _class_identifiers, _ids)
+        _query_interpreter = query_interpreter
+        return cls(_label, _class_identifiers, _ids, _query_interpreter)
+
+    def get_condition(self, node_name="e"):
+        return self.query_interpreter.get_condition(class_identifiers=self.class_identifiers, node_name=node_name)
+
+    def get_group_by_statement(self, node_name="e"):
+        return self.query_interpreter.get_group_by_statement(class_identifiers=self.class_identifiers,
+                                                             node_name=node_name)
+
+    def get_class_properties(self) -> str:
+        return self.query_interpreter.get_class_properties(class_identifiers=self.class_identifiers)
+
+    def get_link_condition(self, class_node_name="c", event_node_name="e"):
+        return self.query_interpreter.get_link_condition(class_identifiers=self.class_identifiers,
+                                                         class_node_name=class_node_name,
+                                                         event_node_name=event_node_name)
+
+    def get_class_label(self):
+        return self.query_interpreter.get_class_label(class_identifiers=self.class_identifiers)
 
 
 @dataclass
 class Condition:  # TODO convert to abc, replace undefined values
     attribute: str
     values: List[Any]
+    query_interpreter: Any
 
     @classmethod
-    def from_dict(cls, obj: Any, not_exist_properties=None) -> Optional[Self]:
+    def from_dict(cls, obj: Any, query_interpreter) -> Optional[Self]:
         if obj is None:
             return None
 
-        if not_exist_properties is None:
-            not_exist_properties = ['<> null']
+        not_exist_properties = query_interpreter.get_not_exist_properties()
         _attribute = obj.get("attribute")
         _include_values = replace_undefined_value(obj.get("values"), not_exist_properties)
-        return cls(_attribute, _include_values)
+        _query_interpreter = query_interpreter
+        return cls(_attribute, _include_values, query_interpreter)
 
 
 @dataclass
@@ -220,12 +242,12 @@ class EntityConstructorByNode(ABC):
     conditions: List[Condition]
 
     @classmethod
-    def from_dict(cls, obj: Any, condition_class_name: Condition = Condition) -> Optional[Self]:
+    def from_dict(cls, obj: Any, interpreter: Interpreter) -> Optional[Self]:
         if obj is None:
             return None
 
         _node_label = obj.get("node_label")
-        _conditions = create_list(condition_class_name, obj.get("conditions"))
+        _conditions = create_list(Condition, obj.get("conditions"), interpreter.condition_query_interpreter)
 
         return cls(node_label=_node_label, conditions=_conditions)
 
@@ -275,6 +297,7 @@ class Entity(ABC):
     include_label_in_df: bool
     merge_duplicate_df: bool
     delete_parallel_df: bool
+    query_interpreter: Any
 
     def get_primary_keys(self):
         return self.primary_keys
@@ -297,7 +320,7 @@ class Entity(ABC):
         return properties
 
     @classmethod
-    def from_dict(cls, obj: Any, condition_class_name: Condition = Condition,
+    def from_dict(cls, obj: Any, interpreter: Interpreter, condition_class_name: Condition = Condition,
                   relation_class_name: Relation = Relation) -> Optional[Self]:
 
         if obj is None:
@@ -306,7 +329,7 @@ class Entity(ABC):
         if not _include:
             return None
 
-        _constructed_by = EntityConstructorByNode.from_dict(obj.get("constructed_by_node"))
+        _constructed_by = EntityConstructorByNode.from_dict(obj.get("constructed_by_node"), interpreter=interpreter)
         if _constructed_by is None:
             _constructed_by = EntityConstructorByRelation.from_dict(obj.get("constructed_by_relation"))
         if _constructed_by is None:
@@ -336,11 +359,41 @@ class Entity(ABC):
                    all_entity_attributes=_all_entity_attributes,
                    entity_attributes_wo_primary_keys=_entity_attributes_wo_primary_keys,
                    corr=_corr, df=_df, include_label_in_df=_include_label_in_df, merge_duplicate_df=_merge_duplicate_df,
-                   delete_parallel_df=_delete_parallel_df)
+                   delete_parallel_df=_delete_parallel_df,
+                   query_interpreter=interpreter.entity_query_interpreter)
+
+    def get_label_string(self):
+        return self.query_interpreter.get_label_string(self.labels)
+
+    def get_df_label(self):
+        return self.query_interpreter.get_df_label(self.include_label_in_df, self.type)
+
+    def get_composed_primary_id(self, node_name: str = "e"):
+        return self.query_interpreter.get_composed_primary_id(self.primary_keys, node_name)
+
+    def get_entity_attributes(self, node_name: str = "e"):
+        return self.query_interpreter.get_entity_attributes(self.primary_keys, self.entity_attributes_wo_primary_keys,
+                                                            node_name)
+
+    def get_entity_attributes_as_node_properties(self):
+        return self.query_interpreter.get_entity_attributes_as_node_properties(self.all_entity_attributes)
+
+    def get_primary_key_existing_condition(self, node_name: str = "e"):
+        return self.query_interpreter.get_primary_key_existing_conditionge(self.primary_keys, node_name)
+
+    def create_condition(self, name: str) -> str:
+        return self.query_interpreter.create_condition(self.constructed_by.conditions, name)
+
+    def get_where_condition(self, node_name: str = "e"):
+        return self.query_interpreter.get_where_condition(self.constructed_by.conditions, self.primary_keys, node_name)
+
+    def get_where_condition_correlation(self, node_name: str = "e", node_name_id: str = "n"):
+        return self.query_interpreter.get_where_condition_correlation(self.constructed_by.conditions, self.primary_keys,
+                                                                      node_name, node_name_id)
 
 
 @dataclass
-class Log(ABC):
+class Log:
     include: bool
     has: bool
 
@@ -382,7 +435,7 @@ class SemanticHeader(ABC):
         return None
 
     @classmethod
-    def from_dict(cls, obj: Any, derived_entity_class_name: Entity = Entity,
+    def from_dict(cls, obj: Any, interpreter: Interpreter, derived_entity_class_name: Entity = Entity,
                   reified_entity_class_name: Entity = Entity,
                   relation_class_name: Relation = Relation,
                   relation_constructor_class_name: RelationConstructorByRelations = RelationConstructorByRelations,
@@ -393,13 +446,15 @@ class SemanticHeader(ABC):
             return None
         _name = obj.get("name")
         _version = obj.get("version")
-        _entities = create_list(derived_entity_class_name, obj.get("entities"))
+        _entities = create_list(derived_entity_class_name, obj.get("entities"), interpreter)
         _entities_derived_from_nodes = [entity for entity in _entities if
                                         entity.constructor_type == "EntityConstructorByNode"]
         _entities_derived_from_relations = [entity for entity in _entities if
                                             entity.constructor_type == "EntityConstructorByRelation"]
         _entities_derived_from_query = [entity for entity in _entities if
                                         entity.constructor_type == "EntityConstructorByQuery"]
+        _relations = create_list(relation_class_name, obj.get("relations"))
+        _classes = create_list(Class, obj.get("classes"), interpreter.class_query_interpreter)
         _relations = create_list(relation_class_name, obj.get("relations"), relation_constructor_class_name, relationship_class, node_class)
         _relations_derived_from_nodes = [relation for relation in _relations if
                                          relation.constructor_type == "RelationConstructorByNodes"]
@@ -415,9 +470,9 @@ class SemanticHeader(ABC):
                    _classes, _log)
 
     @classmethod
-    def create_semantic_header(cls, dataset_name: str, **kwargs):
+    def create_semantic_header(cls, dataset_name: str, query_interpreter, **kwargs):
         with open(f'../json_files/{dataset_name}.json') as f:
             json_semantic_header = json.load(f)
 
-        semantic_header = cls.from_dict(json_semantic_header, **kwargs)
+        semantic_header = cls.from_dict(json_semantic_header, query_interpreter, **kwargs)
         return semantic_header

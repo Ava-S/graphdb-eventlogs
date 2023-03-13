@@ -195,15 +195,17 @@ class LogLPG(Log):
 
 class SemanticHeaderLPG(SemanticHeader):
     @classmethod
-    def from_dict(cls, obj: Any, derived_entity_class_name: Entity = EntityLPG,
-                  reified_entity_class_name: Entity = EntityLPG,
+    def from_dict(cls, obj: Any, interpreter: Any, derived_entity_class_name: Entity = Entity,
+                  reified_entity_class_name: Entity = Entity,
                   relation_class_name: Relation = RelationLPG,
                   relation_constructor_class_name: RelationConstructorByRelations = RelationConstructorByRelationsLPG,
                   relationship_class: Relationship = RelationshipLPG,
                   node_class: Node = NodeLPG,
-                  class_class_name: Class = ClassLPG,
-                  log_class_name: Log = LogLPG) -> Optional[Self]:
-        return super().from_dict(obj, derived_entity_class_name=derived_entity_class_name,
+                  class_class_name: Class = Class,
+                  log_class_name: Log = Log) -> Optional[Self]:
+        return super().from_dict(obj,
+                                 interpreter=interpreter,
+                                 derived_entity_class_name=derived_entity_class_name,
                                  reified_entity_class_name=reified_entity_class_name,
                                  relation_class_name=relation_class_name,
                                  relation_constructor_class_name=relation_constructor_class_name,
