@@ -3,8 +3,7 @@ from typing import Dict, Optional, Any, List
 import re
 
 from data_managers.datastructures import DataStructure
-from data_managers.semantic_header import Class, Entity
-from data_managers.semantic_header_lpg import RelationLPG
+from data_managers.semantic_header import Class, Entity, Relation
 from string import Template
 
 
@@ -251,7 +250,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_correlate, kwargs={})
 
     @staticmethod
-    def get_create_relation_by_relations_query(relation: RelationLPG, batch_size: int):
+    def get_create_relation_by_relations_query(relation: Relation, batch_size: int):
         relation_constructor = relation.constructed_by
         relation_type = relation.type
 
@@ -286,7 +285,7 @@ class CypherQueryLibrary:
         return Query(query_string=query_str, kwargs={})
 
     @staticmethod
-    def get_create_entity_relationships_query(relation: RelationLPG, batch_size: int) -> Query:
+    def get_create_entity_relationships_query(relation: Relation, batch_size: int) -> Query:
         # find events that are related to different entities of which one event also has a reference to the other entity
         # create a relation between these two entities
         relation_type = relation.type
@@ -316,7 +315,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_create_relation, kwargs={})
 
     @staticmethod
-    def create_foreign_key_relation(relation: RelationLPG) -> Query:
+    def create_foreign_key_relation(relation: Relation) -> Query:
         # find events that are related to different entities of which one event also has a reference to the other entity
         # create a relation between these two entities
         entity_label_from_node = relation.constructed_by.from_node_label
@@ -333,7 +332,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_create_relation, kwargs={})
 
     @staticmethod
-    def merge_foreign_key_nodes(relation: RelationLPG) -> Query:
+    def merge_foreign_key_nodes(relation: Relation) -> Query:
         # find events that are related to different entities of which one event also has a reference to the other entity
         # create a relation between these two entities
         foreign_key = relation.constructed_by.foreign_key
@@ -349,7 +348,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_create_relation, kwargs={})
 
     @staticmethod
-    def get_delete_foreign_nodes_query(relation: RelationLPG) -> Query:
+    def get_delete_foreign_nodes_query(relation: Relation) -> Query:
         foreign_key = relation.constructed_by.foreign_key
 
         q_string = f'''
@@ -371,7 +370,7 @@ class CypherQueryLibrary:
         entity_labels_string = entity.get_label_string()
 
         q_create_entity = f'''
-                    MATCH (n1) - [r:{entity.constructed_by.relation_type}] -> (n2) WHERE {conditions}
+                    MATCH (n1) - [r:{entity.constructed_by.relation}] -> (n2) WHERE {conditions}
                     WITH {composed_primary_id_query} AS id, {separate_primary_id_query}
                     MERGE (en:{entity_labels_string}
                             {{ID:id, 
@@ -390,7 +389,7 @@ class CypherQueryLibrary:
 
         q_correlate_entities = f'''
             CALL apoc.periodic.iterate(
-                'MATCH (n1) - [r:{entity.constructed_by.relation_type}] -> (n2) WHERE {conditions}
+                'MATCH (n1) - [r:{entity.constructed_by.relation}] -> (n2) WHERE {conditions}
                 WITH n1, n2, {composed_primary_id_query} AS id
                 MATCH (reified:{entity_labels_string}) WHERE id = reified.ID
                 RETURN n1, n2, reified',

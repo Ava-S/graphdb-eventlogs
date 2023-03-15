@@ -1,3 +1,5 @@
+from string import Template
+
 class ClassCypher:
     @staticmethod
     def get_condition(class_identifiers, node_name="e"):
@@ -127,3 +129,67 @@ class EntityCypher:
             return primary_key_condition
 
 
+class RelationCypher:
+    pass
+
+
+class RelationConstructorByNodesCypher:
+    pass
+
+
+class RelationConstructorByRelationsCypher:
+    @staticmethod
+    def get_antecedent_query(antecedents):
+        antecedents_query = [f"MATCH {antecedent.get_relationship_pattern()}" for antecedent in antecedents]
+        antecedents_query = "\n".join(antecedents_query)
+        return antecedents_query
+
+
+class RelationConstructorByQueryCypher:
+    pass
+
+
+class EntityConstructorByQueryCypher:
+    pass
+
+
+class EntityConstructorByRelationCypher:
+    pass
+
+
+class EntityConstructorByNodesCypher:
+    pass
+
+
+class RelationshipCypher:
+    @staticmethod
+    def get_relationship_pattern(from_node, to_node, relation_name, relation_type, has_direction):
+        from_node_pattern = from_node.get_node_pattern()
+        to_node_pattern = to_node.get_node_pattern()
+        if relation_type != "":
+            relationship_pattern = "$from_node - [$relation_name:$relation_type] -> $to_node" if has_direction \
+                else "$from_node - [$relation_name:$relation_type] - $to_node"
+            relationship_pattern = Template(relationship_pattern).substitute(from_node=from_node_pattern,
+                                                                             to_node=to_node_pattern,
+                                                                             relation_name=relation_name,
+                                                                             relation_type=relation_type)
+        else:
+            relationship_pattern = "$from_node - [$relation_name] -> $to_node" if has_direction \
+                else "$from_node - [$relation_name] - $to_node"
+            relationship_pattern = Template(relationship_pattern).substitute(from_node=from_node_pattern,
+                                                                             to_node=to_node_pattern,
+                                                                             relation_name=relation_name)
+        return relationship_pattern
+
+
+class NodesCypher:
+    @staticmethod
+    def get_node_pattern(node_label, node_name):
+        if node_label != "":
+            node_pattern = "($node_name: $node_label)"
+            node_pattern = Template(node_pattern).substitute(node_name=node_name,
+                                                             node_label=node_label)
+        else:
+            node_pattern = "($node_name)"
+            node_pattern = Template(node_pattern).substitute(node_name=node_name)
+        return node_pattern

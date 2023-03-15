@@ -1,9 +1,9 @@
 import os
 
 from data_managers.interpreters import Interpreter
+from data_managers.semantic_header import SemanticHeader
 from database_managers.EventKnowledgeGraph import EventKnowledgeGraph, DatabaseConnection
 from data_managers.datastructures import ImportedDataStructures
-from data_managers.semantic_header_lpg import SemanticHeaderLPG
 
 # several steps of import, each can be switch on/off
 from utilities.performance_handling import Performance
@@ -17,7 +17,7 @@ dataset_name = 'BPIC14'
 use_sample = True
 
 query_interpreter = Interpreter("Cypher")
-semantic_header = SemanticHeaderLPG.create_semantic_header(dataset_name, query_interpreter)
+semantic_header = SemanticHeader.create_semantic_header(dataset_name, query_interpreter)
 perf_path = os.path.join("..", "perf", dataset_name, f"{dataset_name}Performance.csv")
 number_of_steps = 100
 
