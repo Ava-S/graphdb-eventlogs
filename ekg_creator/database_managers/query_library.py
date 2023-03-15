@@ -658,3 +658,7 @@ class CypherQueryLibrary:
         query_str = Template(query_str).substitute(relation=relation, label=label, properties=properties)
 
         return Query(query_string=query_str, kwargs={})
+
+
+
+

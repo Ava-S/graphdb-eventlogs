@@ -273,8 +273,7 @@ class EntityConstructorByRelation(ABC):
 
     @classmethod
     def from_dict(cls, obj: Any, interpreter: Interpreter = Interpreter) -> \
-            Optional[
-                Self]:
+            Optional[Self]:
         if obj is None:
             return None
 
