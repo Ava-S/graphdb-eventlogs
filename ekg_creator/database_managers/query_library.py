@@ -661,16 +661,16 @@ class CypherQueryLibrary:
     @staticmethod
     def infer_items_to_load_events(entity: Entity, is_load=True) -> Query:
         query_str = '''
-            MATCH (e1:Event) - [:CORR] -> (n:$entity)
-            MATCH (e1) - [:CORR] ->  (equipment:Equipment)
-            MATCH (e1) - [:OBSERVED] -> (:Class) - [:AT] -> (:Location) - [:PART_OF*0..] -> (l:Location) 
-            WITH e1, l, equipment, n
-            CALL {WITH e1, l, equipment
+            MATCH (f2:Event) - [:CORR] -> (n:$entity)
+            MATCH (f2) - [:CORR] ->  (equipment:Equipment)
+            MATCH (f2) - [:OBSERVED] -> (:Class) - [:AT] -> (:Location) - [:PART_OF*0..] -> (l:Location) 
+            WITH f2, l, equipment, n
+            CALL {WITH f2, l, equipment
                 MATCH ($load_event_type:Event) - [:OBSERVED] -> (c: Class)
                 MATCH (c) - [:IS] -> (:Activity {type: "physical", subtype: "$subtype", entity: "$entity"})  
                 MATCH (c) - [:AT] -> (l)
                 MATCH ($load_event_type) - [:CORR] ->  (equipment)
-                WHERE $load_event_type.timestamp $comparison e1.timestamp AND $load_event_type.$entity_id IS NULL
+                WHERE $load_event_type.timestamp $comparison f2.timestamp
                 RETURN $load_event_type as $load_event_type_first
                 ORDER BY $load_event_type.timestamp $order_type
                 LIMIT 1}
@@ -700,9 +700,9 @@ class CypherQueryLibrary:
             MATCH (c_other) - [:IS] -> (:Activity {entity: "$entity"}) 
             WITH e2, equipment, l, b
             CALL {WITH e2, equipment ,l
-                MATCH (e0: Event)-[:OBSERVED]->(c_load:Class) - [:IS] 
+                MATCH (e0: Event)-[:OBSERVED]->(c0:Class) - [:IS] 
                     -> (:Activity {type:"physical", subtype: "load", entity:"$entity"})
-                MATCH (c_load) - [:AT] -> (l)
+                MATCH (c0) - [:AT] -> (l)
                 MATCH (e0)-[:CORR]->(resource)
                 WHERE e0.timestamp <= e2.timestamp
                 // find the first preceding e0
@@ -724,26 +724,26 @@ class CypherQueryLibrary:
     @staticmethod
     def infer_items_to_events_using_location_single_to_single(entity: Entity) -> Query:
         query_str = '''
-                    MATCH (e1 :Event) - [:CORR] -> (equipment :Equipment)
-                    WHERE e1.$entity_id IS NULL
-                    MATCH (e1) - [:OBSERVED] -> (c_other:Class) -[:AT]-> (l:Location)
-                    MATCH (c_other) - [:IS] -> (:Activity {entity: "$entity"}) 
-                    WITH e1, equipment, l
-                    CALL {WITH e1, equipment, l
-                        MATCH (e0: Event)-[:OBSERVED]->(c_load:Class) - [:IS] 
+                    MATCH (f1 :Event) - [:CORR] -> (equipment :Equipment)
+                    WHERE f1.$entity_id IS NULL
+                    MATCH (f1) - [:OBSERVED] -> (c1:Class) -[:AT]-> (l:Location)
+                    MATCH (c1) - [:IS] -> (:Activity {entity: "$entity"}) 
+                    WITH f1, equipment, l
+                    CALL {WITH f1, equipment, l
+                        MATCH (f0: Event)-[:OBSERVED]->(c0:Class) - [:IS] 
                             -> (:Activity {type:"physical", subtype: "load", entity:"$entity"})
-                        MATCH (c_load) - [:AT] -> (l)
-                        MATCH (e0)-[:CORR]->(equipment)
-                        WHERE e0.timestamp <= e1.timestamp
-                        // find the first preceding e0
-                        RETURN e0 as e0_first_prec
-                        ORDER BY e0.timestamp DESC
+                        MATCH (c0) - [:AT] -> (l)
+                        MATCH (f0)-[:CORR]->(equipment)
+                        WHERE f0.timestamp <= f1.timestamp
+                        // find the first preceding f0
+                        RETURN f0 as f0_first_prec
+                        ORDER BY f0.timestamp DESC
                         LIMIT 1
                     }
-                    // only merge when e0_first_prec is actually related to a Box
-                    WITH e1, [(e0_first_prec)-[:CORR]->(n:$entity) | n] as related_n
+                    // only merge when f0_first_prec is actually related to a Box
+                    WITH f1, [(f0_first_prec)-[:CORR]->(n:$entity) | n] as related_n
                     FOREACH (n in related_n | 
-                        MERGE (e1) - [:CORR] -> (n)
+                        MERGE (f1) - [:CORR] -> (n)
                     )
                     '''
 
