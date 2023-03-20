@@ -13,8 +13,8 @@ from database_managers import authentication
 
 connection = authentication.connections_map[authentication.Connections.LOCAL]
 
-dataset_name = 'ECESample'
-use_sample = False
+dataset_name = 'BPIC17'
+use_sample = True
 
 query_interpreter = Interpreter("Cypher")
 semantic_header = SemanticHeader.create_semantic_header(dataset_name, query_interpreter)
