@@ -283,6 +283,9 @@ class EntityConstructorByRelation(ABC):
         return cls(relation=_relation, conditions=_conditions,
                    qi=interpreter.entity_constructor_by_relation_qi)
 
+    def get_relation_type(self):
+        return self.relation.relation_type
+
 
 @dataclass
 class EntityConstructorByQuery(ABC):
@@ -348,9 +351,9 @@ class Entity(ABC):
 
         _constructed_by = EntityConstructorByNode.from_dict(obj.get("constructed_by_node"), interpreter=interpreter)
         if _constructed_by is None:
-            _constructed_by = EntityConstructorByRelation.from_dict(obj.get("constructed_by_relation"))
+            _constructed_by = EntityConstructorByRelation.from_dict(obj.get("constructed_by_relation"), interpreter=interpreter)
         if _constructed_by is None:
-            _constructed_by = EntityConstructorByQuery.from_dict(obj.get("constructed_by_query"))
+            _constructed_by = EntityConstructorByQuery.from_dict(obj.get("constructed_by_query"), interpreter=interpreter)
 
         _constructor_type = _constructed_by.__class__.__name__
         _type = obj.get("type")

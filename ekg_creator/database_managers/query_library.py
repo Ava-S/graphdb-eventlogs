@@ -370,7 +370,7 @@ class CypherQueryLibrary:
         entity_labels_string = entity.get_label_string()
 
         q_create_entity = f'''
-                    MATCH (n1) - [r:{entity.constructed_by.relation}] -> (n2) WHERE {conditions}
+                    MATCH (n1) - [r:{entity.constructed_by.get_relation_type()}] -> (n2) WHERE {conditions}
                     WITH {composed_primary_id_query} AS id, {separate_primary_id_query}
                     MERGE (en:{entity_labels_string}
                             {{ID:id, 
@@ -389,7 +389,7 @@ class CypherQueryLibrary:
 
         q_correlate_entities = f'''
             CALL apoc.periodic.iterate(
-                'MATCH (n1) - [r:{entity.constructed_by.relation}] -> (n2) WHERE {conditions}
+                'MATCH (n1) - [r:{entity.constructed_by.get_relation_type()}] -> (n2) WHERE {conditions}
                 WITH n1, n2, {composed_primary_id_query} AS id
                 MATCH (reified:{entity_labels_string}) WHERE id = reified.ID
                 RETURN n1, n2, reified',
