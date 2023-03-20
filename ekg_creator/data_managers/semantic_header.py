@@ -1,6 +1,6 @@
 import json
 from abc import ABC
-from typing import List, Any, Optional, Self, Union
+from typing import List, Any, Optional, Union, Self
 
 from dataclasses import dataclass
 
@@ -16,15 +16,15 @@ class Class:
     ids: List[str]
     qi: Any
 
-    @classmethod
-    def from_dict(cls, obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    @staticmethod
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
         if obj is None:
             return None
         _label = obj.get("label")
         _class_identifiers = obj.get("class_identifiers")
         _ids = obj.get("ids")
         _query_interpreter = interpreter.class_qi
-        return cls(_label, _class_identifiers, _ids, _query_interpreter)
+        return Class(_label, _class_identifiers, _ids, _query_interpreter)
 
     def get_condition(self, node_name="e"):
         return self.qi.get_condition(class_identifiers=self.class_identifiers, node_name=node_name)
@@ -51,8 +51,8 @@ class Condition:
     values: List[Any]
     qi: Any
 
-    @classmethod
-    def from_dict(cls, obj: Any, query_interpreter) -> Optional[Self]:
+    @staticmethod
+    def from_dict(obj: Any, query_interpreter) -> Optional[Self]:
         if obj is None:
             return None
 
@@ -60,7 +60,7 @@ class Condition:
         _attribute = obj.get("attribute")
         _include_values = replace_undefined_value(obj.get("values"), not_exist_properties)
         _query_interpreter = query_interpreter
-        return cls(_attribute, _include_values, query_interpreter)
+        return Condition(_attribute, _include_values, query_interpreter)
 
 
 @dataclass()
@@ -70,8 +70,8 @@ class Node(ABC):
     properties: List[Any]
     qi: Any
 
-    @classmethod
-    def from_string(cls, node_description: str, interpreter: Interpreter) -> Optional[Self]:
+    @staticmethod
+    def from_string(node_description: str, interpreter: Interpreter) -> Optional[Self]:
         # we expect a node to be described in (node_name:Node_label)
         node_description = re.sub(r"[() ]", "", node_description)
         node_components = node_description.split(":")
@@ -79,7 +79,7 @@ class Node(ABC):
         node_label = ""
         if len(node_components) > 1:
             node_label = node_components[1]
-        return cls(node_name=node_name, node_label=node_label, properties=[], qi=interpreter.nodes_qi)
+        return Node(node_name=node_name, node_label=node_label, properties=[], qi=interpreter.nodes_qi)
 
     def get_node_pattern(self):
         return self.qi.get_node_pattern(self.node_label, self.node_name)
@@ -95,8 +95,8 @@ class Relationship(ABC):
     has_direction: bool
     qi: Any
 
-    @classmethod
-    def from_string(cls, relation_description: str,
+    @staticmethod
+    def from_string(relation_description: str,
                     interpreter: Interpreter) -> Optional[Self]:
         # we expect a node to be described in (node_name:Node_label)
         relation_directions = {
@@ -123,7 +123,7 @@ class Relationship(ABC):
         _from_node = Node.from_string(nodes[relation_directions[direction]["from_node"]], interpreter)
         _to_node = Node.from_string(nodes[relation_directions[direction]["to_node"]], interpreter)
 
-        return cls(relation_name=_relation_name, relation_type=_relation_type,
+        return Relationship(relation_name=_relation_name, relation_type=_relation_type,
                    from_node=_from_node, to_node=_to_node, properties=[], has_direction=_has_direction,
                    qi=interpreter.relationship_qi)
 
@@ -142,8 +142,8 @@ class RelationConstructorByNodes(ABC):
     reversed: bool
     qi: Any
 
-    @classmethod
-    def from_dict(cls, obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    @staticmethod
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
         if obj is None:
             return None
 
@@ -152,7 +152,7 @@ class RelationConstructorByNodes(ABC):
         _foreign_key = obj.get("foreign_key")
         _primary_key = replace_undefined_value(obj.get("primary_key"), "ID")
         _reversed = replace_undefined_value(obj.get("reversed"), False)
-        return cls(from_node_label=_from_node_label, to_node_label=_to_node_label,
+        return RelationConstructorByNodes(from_node_label=_from_node_label, to_node_label=_to_node_label,
                    foreign_key=_foreign_key, primary_key=_primary_key,
                    reversed=_reversed, qi=interpreter.relation_constructor_by_nodes_qi)
 
@@ -167,8 +167,8 @@ class RelationConstructorByRelations(ABC):
     to_node_label: str
     qi: Any
 
-    @classmethod
-    def from_dict(cls, obj: Any, interpreter: Interpreter) -> \
+    @staticmethod
+    def from_dict(obj: Any, interpreter: Interpreter) -> \
             Optional[Self]:
         if obj is None:
             return None
@@ -181,7 +181,7 @@ class RelationConstructorByRelations(ABC):
         _from_node_label = _consequent.from_node.node_label
         _to_node_label = _consequent.to_node.node_label
 
-        return cls(antecedents=_antecedents, consequent=_consequent, from_node_name=_from_node_name,
+        return RelationConstructorByRelations(antecedents=_antecedents, consequent=_consequent, from_node_name=_from_node_name,
                    to_node_name=_to_node_name, from_node_label=_from_node_label, to_node_label=_to_node_label,
                    qi=interpreter.relation_constructor_by_relations_qi)
 
@@ -206,14 +206,14 @@ class RelationConstructorByQuery(ABC):
     query: str
     qi: Any
 
-    @classmethod
-    def from_dict(cls, obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    @staticmethod
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
         if obj is None:
             return None
 
         _query = obj.get("query")
 
-        return cls(query=_query, qi=interpreter.relation_constructor_by_query_qi)
+        return RelationConstructorByQuery(query=_query, qi=interpreter.relation_constructor_by_query_qi)
 
 
 @dataclass
@@ -224,8 +224,8 @@ class Relation(ABC):
     constructor_type: str
     qi: Any
 
-    @classmethod
-    def from_dict(cls, obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    @staticmethod
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
         if obj is None:
             return None
         _include = replace_undefined_value(obj.get("include"), True)
@@ -244,7 +244,7 @@ class Relation(ABC):
 
         _constructor_type = _constructed_by.__class__.__name__
 
-        return cls(_include, _type, constructed_by=_constructed_by, constructor_type=_constructor_type,
+        return Relation(_include, _type, constructed_by=_constructed_by, constructor_type=_constructor_type,
                    qi=interpreter.relation_qi)
 
 
@@ -254,15 +254,15 @@ class EntityConstructorByNode(ABC):
     conditions: List[Condition]
     qi: Any
 
-    @classmethod
-    def from_dict(cls, obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    @staticmethod
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
         if obj is None:
             return None
 
         _node_label = obj.get("node_label")
         _conditions = create_list(Condition, obj.get("conditions"), interpreter.condition_qi)
 
-        return cls(node_label=_node_label, conditions=_conditions, qi=interpreter.entity_constructor_by_nodes_qi)
+        return EntityConstructorByNode(node_label=_node_label, conditions=_conditions, qi=interpreter.entity_constructor_by_nodes_qi)
 
 
 @dataclass
@@ -271,8 +271,8 @@ class EntityConstructorByRelation(ABC):
     conditions: List[Condition]
     qi: Any
 
-    @classmethod
-    def from_dict(cls, obj: Any, interpreter: Interpreter = Interpreter) -> \
+    @staticmethod
+    def from_dict(obj: Any, interpreter: Interpreter = Interpreter) -> \
             Optional[Self]:
         if obj is None:
             return None
@@ -280,7 +280,7 @@ class EntityConstructorByRelation(ABC):
         _relation = Relationship.from_string(obj.get("relation_type"), interpreter)
         _conditions = create_list(Condition, obj.get("conditions"), interpreter)
 
-        return cls(relation=_relation, conditions=_conditions,
+        return EntityConstructorByRelation(relation=_relation, conditions=_conditions,
                    qi=interpreter.entity_constructor_by_relation_qi)
 
     def get_relation_type(self):
@@ -292,14 +292,14 @@ class EntityConstructorByQuery(ABC):
     query: str
     qi: Any
 
-    @classmethod
-    def from_dict(cls, obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    @staticmethod
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
         if obj is None:
             return None
 
         _query = obj.get("query")
 
-        return cls(query=_query, qi=interpreter.entity_constructor_by_query_qi)
+        return EntityConstructorByQuery(query=_query, qi=interpreter.entity_constructor_by_query_qi)
 
 
 @dataclass
@@ -339,9 +339,8 @@ class Entity(ABC):
 
         return properties
 
-    @classmethod
-    def from_dict(cls, obj: Any, interpreter: Interpreter, condition_class_name: Condition = Condition,
-                  relation_class_name: Relation = Relation) -> Optional[Self]:
+    @staticmethod
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
 
         if obj is None:
             return None
@@ -374,7 +373,7 @@ class Entity(ABC):
 
         _delete_parallel_df = _df and obj.get("delete_parallel_df")
 
-        return cls(include=_include, constructed_by=_constructed_by, constructor_type=_constructor_type,
+        return Entity(include=_include, constructed_by=_constructed_by, constructor_type=_constructor_type,
                    type=_type, labels=_labels, primary_keys=_primary_keys,
                    all_entity_attributes=_all_entity_attributes,
                    entity_attributes_wo_primary_keys=_entity_attributes_wo_primary_keys,
@@ -418,15 +417,15 @@ class Log:
     has: bool
     qi: Any
 
-    @classmethod
-    def from_dict(cls, obj: Any, interpreter: Interpreter) -> Self:
+    @staticmethod
+    def from_dict(obj: Any, interpreter: Interpreter) -> Self:
         if obj is None:
             return Log(False, False, interpreter.log_qi)
         _include = replace_undefined_value(obj.get("include"), True)
         if not _include:
             return Log(False, False, interpreter.log_qi)
         _has = replace_undefined_value(obj.get("has"), True)
-        return cls(_include, _has, qi=interpreter.log_qi)
+        return Log(_include, _has, qi=interpreter.log_qi)
 
 
 class SemanticHeader(ABC):
@@ -455,8 +454,8 @@ class SemanticHeader(ABC):
                 return entity
         return None
 
-    @classmethod
-    def from_dict(cls, obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    @staticmethod
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
         if obj is None:
             return None
         _name = obj.get("name")
@@ -477,15 +476,15 @@ class SemanticHeader(ABC):
                                          relation.constructor_type == "RelationConstructorByQuery"]
         _classes = create_list(Class, obj.get("classes"), interpreter)
         _log = Log.from_dict(obj.get("log"), interpreter)
-        return cls(_name, _version,
+        return SemanticHeader(_name, _version,
                    _entities_derived_from_nodes, _entities_derived_from_relations, _entities_derived_from_query,
                    _relations_derived_from_nodes, _relations_derived_from_relations, _relations_derived_from_query,
                    _classes, _log)
 
-    @classmethod
-    def create_semantic_header(cls, dataset_name: str, query_interpreter, **kwargs):
+    @staticmethod
+    def create_semantic_header(dataset_name: str, query_interpreter, **kwargs):
         with open(f'../json_files/{dataset_name}.json') as f:
             json_semantic_header = json.load(f)
 
-        semantic_header = cls.from_dict(json_semantic_header, query_interpreter, **kwargs)
+        semantic_header = SemanticHeader.from_dict(json_semantic_header, query_interpreter, **kwargs)
         return semantic_header
