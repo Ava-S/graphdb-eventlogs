@@ -109,7 +109,7 @@
     },
     {
       "constructed_by_relation": {
-        "relation_type": "CASE_AO"
+        "relation_type": "(:Offer) - [:CASE_AO] -> (:Application)"
       },
       "type": "CaseAO",
       "labels": [
@@ -124,7 +124,7 @@
     },
     {
       "constructed_by_relation": {
-        "relation_type": "CASE_AW"
+        "relation_type": "(:Workflow) - [:CASE_AW] -> (:Application)"
       },
       "type": "CaseAW",
       "labels": [
@@ -139,7 +139,7 @@
     },
     {
       "constructed_by_relation": {
-        "relation_type": "CASE_WO"
+        "relation_type": "(:Offer) - [:CASE_WO] -> (:Workflow)"
       },
       "type": "CaseWO",
       "labels": [
@@ -156,21 +156,27 @@
   "relations": [
     {
       "type": "CASE_AO",
-      "from_node_label": "Offer",
-      "to_node_label": "Application",
-      "foreign_key": "case"
+      "constructed_by_nodes": {
+        "from_node_label": "Offer",
+        "to_node_label": "Application",
+        "foreign_key": "case"
+      }
     },
     {
       "type": "CASE_AW",
-      "from_node_label": "Workflow",
-      "to_node_label": "Application",
-      "foreign_key": "case"
+      "constructed_by_nodes": {
+        "from_node_label": "Workflow",
+        "to_node_label": "Application",
+        "foreign_key": "case"
+      }
     },
     {
       "type": "CASE_WO",
-      "from_node_label": "Offer",
-      "to_node_label": "Workflow",
-      "foreign_key": "case"
+      "constructed_by_nodes": {
+        "from_node_label": "Offer",
+        "to_node_label": "Workflow",
+        "foreign_key": "case"
+      }
     }
   ],
   "classes": [

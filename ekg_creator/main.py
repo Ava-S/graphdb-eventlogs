@@ -1,8 +1,9 @@
 import os
 
+from data_managers.interpreters import Interpreter
+from data_managers.semantic_header import SemanticHeader
 from database_managers.EventKnowledgeGraph import EventKnowledgeGraph, DatabaseConnection
 from data_managers.datastructures import ImportedDataStructures
-from data_managers.semantic_header_lpg import SemanticHeaderLPG
 
 # several steps of import, each can be switch on/off
 from utilities.performance_handling import Performance
@@ -15,7 +16,8 @@ connection = authentication.connections_map[authentication.Connections.LOCAL]
 dataset_name = 'BoxProcess'
 use_sample = False
 
-semantic_header = SemanticHeaderLPG.create_semantic_header(dataset_name)
+query_interpreter = Interpreter("Cypher")
+semantic_header = SemanticHeader.create_semantic_header(dataset_name, query_interpreter)
 perf_path = os.path.join("..", "perf", dataset_name, f"{dataset_name}Performance.csv")
 number_of_steps = 100
 
@@ -71,7 +73,6 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
 
     # for each entity, we add the entity nodes to graph and correlate them to the correct events
     graph.create_entities_by_nodes(node_label="Event")
-    graph.create_entities_by_nodes(node_label="Entity")
     perf.finished_step(log_message=f"(:Entity) nodes done")
 
     graph.correlate_events_to_entities(node_label="Event")
@@ -81,6 +82,7 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
     perf.finished_step(log_message=f"(:Class) nodes done")
 
     graph.create_entity_relations_using_nodes()
+    graph.create_entity_relations_using_relations()
     perf.finished_step(log_message=f"[:REL] edges done")
 
     graph.create_entities_by_relations()

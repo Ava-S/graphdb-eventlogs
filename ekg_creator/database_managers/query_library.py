@@ -1,8 +1,9 @@
 from dataclasses import dataclass
 from typing import Dict, Optional, Any, List
+import re
 
 from data_managers.datastructures import DataStructure
-from data_managers.semantic_header_lpg import EntityLPG, RelationLPG, ClassLPG
+from data_managers.semantic_header import Class, Entity, Relation
 from string import Template
 
 
@@ -193,7 +194,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_link_events_to_log, kwargs={})
 
     @staticmethod
-    def get_create_entity_query(entity: EntityLPG) -> Query:
+    def get_create_entity_query(entity: Entity) -> Query:
         # find events that contain the entity as property and not nan
         # save the value of the entity property as id and also whether it is a virtual entity
         # create a new entity node if it not exists yet with properties
@@ -220,7 +221,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_create_entity, kwargs={})
 
     @staticmethod
-    def get_correlate_events_to_entity_query(entity: EntityLPG, batch_size: int) -> Query:
+    def get_correlate_events_to_entity_query(entity: Entity, batch_size: int) -> Query:
         # correlate events that contain a reference from an entity to that entity node
         entity_labels_string = entity.get_label_string()
         conditions = entity.get_where_condition_correlation()
@@ -248,7 +249,42 @@ class CypherQueryLibrary:
         return Query(query_string=q_correlate, kwargs={})
 
     @staticmethod
-    def get_create_entity_relationships_query(relation: RelationLPG, batch_size: int) -> Query:
+    def get_create_relation_by_relations_query(relation: Relation, batch_size: int):
+        relation_constructor = relation.constructed_by
+        relation_type = relation.type
+
+        antecedents_query = relation_constructor.get_antecedent_query()
+        from_node_name = relation_constructor.get_from_node_name()
+        to_node_name = relation_constructor.get_to_node_name()
+
+        from_node_id = relation_constructor.get_from_node_label()
+        first_lower_case = re.search("[a-z]", from_node_id).start()
+        from_node_id = from_node_id[:first_lower_case].lower() + from_node_id[first_lower_case + 1:] + "Id"
+
+        to_node_id = relation_constructor.get_to_node_label()
+        first_lower_case = re.search("[a-z]", to_node_id).start()
+        to_node_id = to_node_id[:first_lower_case].lower() + to_node_id[first_lower_case + 1:] + "Id"
+
+        query_str = '''
+                        CALL apoc.periodic.iterate(
+                        '
+                        $antecedents_query
+                        RETURN distinct $from_node, $to_node',
+                        'MERGE ($from_node) - [:$type {type:"Rel",
+                            $from_node_id: $from_node.ID,
+                            $to_node_id: $to_node.ID}] -> ($to_node)',
+                        {batchSize: $batch_size})
+                        '''
+
+        query_str = Template(query_str).substitute(antecedents_query=antecedents_query, from_node=from_node_name, to_node=to_node_name,
+                                                   type=relation_type,
+                                                   from_node_id=from_node_id, to_node_id=to_node_id,
+                                                   batch_size=batch_size)
+
+        return Query(query_string=query_str, kwargs={})
+
+    @staticmethod
+    def get_create_entity_relationships_query(relation: Relation, batch_size: int) -> Query:
         # find events that are related to different entities of which one event also has a reference to the other entity
         # create a relation between these two entities
         relation_type = relation.type
@@ -278,7 +314,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_create_relation, kwargs={})
 
     @staticmethod
-    def create_foreign_key_relation(relation: RelationLPG) -> Query:
+    def create_foreign_key_relation(relation: Relation) -> Query:
         # find events that are related to different entities of which one event also has a reference to the other entity
         # create a relation between these two entities
         entity_label_from_node = relation.constructed_by.from_node_label
@@ -295,7 +331,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_create_relation, kwargs={})
 
     @staticmethod
-    def merge_foreign_key_nodes(relation: RelationLPG) -> Query:
+    def merge_foreign_key_nodes(relation: Relation) -> Query:
         # find events that are related to different entities of which one event also has a reference to the other entity
         # create a relation between these two entities
         foreign_key = relation.constructed_by.foreign_key
@@ -311,7 +347,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_create_relation, kwargs={})
 
     @staticmethod
-    def get_delete_foreign_nodes_query(relation: RelationLPG) -> Query:
+    def get_delete_foreign_nodes_query(relation: Relation) -> Query:
         foreign_key = relation.constructed_by.foreign_key
 
         q_string = f'''
@@ -322,7 +358,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_string, kwargs={})
 
     @staticmethod
-    def get_create_entities_by_relations_query(entity: EntityLPG) -> Query:
+    def get_create_entities_by_relations_query(entity: Entity) -> Query:
 
         conditions = entity.get_where_condition("r")
         composed_primary_id_query = entity.get_composed_primary_id("r")
@@ -333,7 +369,7 @@ class CypherQueryLibrary:
         entity_labels_string = entity.get_label_string()
 
         q_create_entity = f'''
-                    MATCH (n1) - [r:{entity.constructed_by.relation_type}] -> (n2) WHERE {conditions}
+                    MATCH (n1) - [r:{entity.constructed_by.get_relation_type()}] -> (n2) WHERE {conditions}
                     WITH {composed_primary_id_query} AS id, {separate_primary_id_query}
                     MERGE (en:{entity_labels_string}
                             {{ID:id, 
@@ -345,14 +381,14 @@ class CypherQueryLibrary:
         return Query(query_string=q_create_entity, kwargs={})
 
     @staticmethod
-    def get_add_reified_relation_query(entity: EntityLPG, batch_size: int):
+    def get_add_reified_relation_query(entity: Entity, batch_size: int):
         conditions = entity.get_where_condition("r")
         composed_primary_id_query = entity.get_composed_primary_id("r")
         entity_labels_string = entity.get_label_string()
 
         q_correlate_entities = f'''
             CALL apoc.periodic.iterate(
-                'MATCH (n1) - [r:{entity.constructed_by.relation_type}] -> (n2) WHERE {conditions}
+                'MATCH (n1) - [r:{entity.constructed_by.get_relation_type()}] -> (n2) WHERE {conditions}
                 WITH n1, n2, {composed_primary_id_query} AS id
                 MATCH (reified:{entity_labels_string}) WHERE id = reified.ID
                 RETURN n1, n2, reified',
@@ -364,7 +400,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_correlate_entities, kwargs={})
 
     @staticmethod
-    def get_correlate_events_to_reification_query(reified_entity: EntityLPG):
+    def get_correlate_events_to_reification_query(reified_entity: Entity):
         reified_entity_labels = reified_entity.get_label_string()
         q_correlate = f'''
                                 MATCH (e:Event) -[:CORR]-> (n:Entity) <-[:REIFIED ]- (r:Entity:{reified_entity_labels})
@@ -373,7 +409,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_correlate, kwargs={})
 
     @staticmethod
-    def get_create_directly_follows_query(entity: EntityLPG, batch_size) -> Query:
+    def get_create_directly_follows_query(entity: Entity, batch_size) -> Query:
         # find the specific entities and events with a certain label correlated to that entity
         # order all events by time, order_nr and id grouped by a node n
         # collect the sorted nodes as a list
@@ -401,7 +437,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_create_df, kwargs={})
 
     @staticmethod
-    def get_merge_duplicate_df_entity_query(entity: EntityLPG) -> Query:
+    def get_merge_duplicate_df_entity_query(entity: Entity) -> Query:
         q_merge_duplicate_rel = f'''
                     MATCH (n1:Event)-[r:{entity.get_df_label()} {{entityType: "{entity.type}"}}]->(n2:Event)
                     WITH n1, n2, collect(r) AS rels
@@ -414,7 +450,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_merge_duplicate_rel, kwargs={})
 
     @staticmethod
-    def delete_parallel_directly_follows_derived(reified_entity: EntityLPG, original_entity: EntityLPG):
+    def delete_parallel_directly_follows_derived(reified_entity: Entity, original_entity: Entity):
         reified_entity_type = reified_entity.type
         df_reified_entity = reified_entity.get_df_label()
 
@@ -429,7 +465,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_delete_df, kwargs={})
 
     @staticmethod
-    def _get_aggregate_df_relations_query(entity: EntityLPG = None,
+    def _get_aggregate_df_relations_query(entity: Entity = None,
                                           include_label_in_c_df: bool = True,
                                           classifiers: Optional[List[str]] = None, df_threshold: int = 0,
                                           relative_df_threshold: float = 0) -> List[Query]:
@@ -502,7 +538,7 @@ class CypherQueryLibrary:
             return [Query(query_string=q_create_dfc, kwargs={})]
 
     @staticmethod
-    def get_create_class_query(_class: ClassLPG) -> Query:
+    def get_create_class_query(_class: Class) -> Query:
         # make sure first element of id list is cID
         label = _class.label
 
@@ -521,7 +557,7 @@ class CypherQueryLibrary:
         return Query(query_string=q_create_ec, kwargs={})
 
     @staticmethod
-    def get_link_event_to_class_query(_class: ClassLPG, batch_size: int) -> Query:
+    def get_link_event_to_class_query(_class: Class, batch_size: int) -> Query:
         # Create :OBSERVED relation between the class and events
         class_label = _class.get_class_label()
         where_link_condition = _class.get_link_condition(class_node_name="c", event_node_name="e")

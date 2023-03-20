@@ -91,9 +91,11 @@
   "relations": [
     {
       "type": "PO",
-      "from_node_label": "POItem",
-      "to_node_label": "PO",
-      "foreign_key": "cPoId"
+      "constructed_by_nodes": {
+        "from_node_label": "POItem",
+        "to_node_label": "PO",
+        "foreign_key": "cPoId"
+      }
     }
   ],
   "classes": [

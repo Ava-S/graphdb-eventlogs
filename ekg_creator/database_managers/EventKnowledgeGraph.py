@@ -1,4 +1,6 @@
 from typing import List, Set
+
+from data_managers.semantic_header import SemanticHeader
 from database_managers.db_connection import DatabaseConnection
 from database_managers.ekg_builder_semantic_header import EKGUsingSemanticHeaderBuilder
 from database_managers.ekg_custom import EKGCustom
@@ -6,7 +8,6 @@ from database_managers.ekg_management import EKGManagement
 from data_managers.datastructures import ImportedDataStructures
 from data_managers.data_importer import Importer
 from utilities.performance_handling import Performance
-from data_managers.semantic_header_lpg import SemanticHeaderLPG
 
 from database_managers.inference_engine import InferenceEngine
 
@@ -16,7 +17,7 @@ from tabulate import tabulate
 class EventKnowledgeGraph:
     def __init__(self, db_connection: DatabaseConnection, db_name: str, batch_size: int,
                  event_tables: ImportedDataStructures, use_sample: bool = False,
-                 semantic_header: SemanticHeaderLPG = None,
+                 semantic_header: SemanticHeader = None,
                  perf: Performance = None):
         self.ekg_management = EKGManagement(db_connection=db_connection, db_name=db_name, perf=perf)
         self.data_importer = Importer(db_connection, data_structures=event_tables, batch_size=batch_size,
@@ -77,6 +78,9 @@ class EventKnowledgeGraph:
 
     def create_entity_relations_using_nodes(self) -> None:
         self.ekg_builder.create_entity_relations_using_nodes()
+
+    def create_entity_relations_using_relations(self) -> None:
+        self.ekg_builder.create_entity_relations_using_relations()
 
     def create_entities_by_relations(self) -> None:
         self.ekg_builder.create_entities_by_relations()

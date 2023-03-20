@@ -7,9 +7,15 @@
         "node_label": "Event"
       },
       "type": "ConfigurationItem",
-      "labels": ["ConfigurationItem"],
-      "primary_keys": ["ciNameAff"],
-      "entity_attributes": ["serviceComponentAff"],
+      "labels": [
+        "ConfigurationItem"
+      ],
+      "primary_keys": [
+        "ciNameAff"
+      ],
+      "entity_attributes": [
+        "serviceComponentAff"
+      ],
       "corr": true,
       "df": true,
       "include_label_in_df": true,
@@ -20,8 +26,12 @@
         "node_label": "Event"
       },
       "type": "ServiceComponent",
-      "labels": ["ServiceComponent"],
-      "primary_keys": ["serviceComponentAff"],
+      "labels": [
+        "ServiceComponent"
+      ],
+      "primary_keys": [
+        "serviceComponentAff"
+      ],
       "corr": true,
       "df": true,
       "include_label_in_df": true,
@@ -32,8 +42,12 @@
         "node_label": "Event"
       },
       "type": "Incident",
-      "labels": ["Incident"],
-      "primary_keys": ["incidentId"],
+      "labels": [
+        "Incident"
+      ],
+      "primary_keys": [
+        "incidentId"
+      ],
       "corr": true,
       "df": true,
       "include_label_in_df": true,
@@ -44,9 +58,15 @@
         "node_label": "Event"
       },
       "type": "Interaction",
-      "labels": ["Interaction"],
-      "primary_keys": ["interactionId"],
-      "entity_attributes": ["relatedIncident"],
+      "labels": [
+        "Interaction"
+      ],
+      "primary_keys": [
+        "interactionId"
+      ],
+      "entity_attributes": [
+        "relatedIncident"
+      ],
       "df": true,
       "include_label_in_df": true,
       "corr": true,
@@ -57,8 +77,12 @@
         "node_label": "Event"
       },
       "type": "Change",
-      "labels": ["Change"],
-      "primary_keys": ["changeId"],
+      "labels": [
+        "Change"
+      ],
+      "primary_keys": [
+        "changeId"
+      ],
       "df": true,
       "include_label_in_df": true,
       "corr": true,
@@ -69,8 +93,12 @@
         "node_label": "Event"
       },
       "type": "CaseR",
-      "labels": ["CaseR"],
-      "primary_keys": ["resource"],
+      "labels": [
+        "CaseR"
+      ],
+      "primary_keys": [
+        "resource"
+      ],
       "df": true,
       "include_label_in_df": true,
       "corr": true,
@@ -80,9 +108,13 @@
       "constructed_by_node": {
         "node_label": "Event"
       },
-      "type":"KM",
-      "labels": ["KM"],
-      "primary_keys": ["kmNumber"],
+      "type": "KM",
+      "labels": [
+        "KM"
+      ],
+      "primary_keys": [
+        "kmNumber"
+      ],
       "df": true,
       "include_label_in_df": true,
       "corr": true,
@@ -92,15 +124,19 @@
   "relations": [
     {
       "type": "RELATED_INCIDENT",
-      "from_node_label": "Interaction",
-      "to_node_label": "Incident",
-      "foreign_key": "relatedIncident"
+      "constructed_by_nodes": {
+        "from_node_label": "Interaction",
+        "to_node_label": "Incident",
+        "foreign_key": "relatedIncident"
+      }
     },
     {
       "type": "PART_OF",
-      "from_node_label": "ConfigurationItem",
-      "to_node_label": "ServiceComponent",
-      "foreign_key": "serviceComponentAff"
+      "constructed_by_nodes": {
+        "from_node_label": "ConfigurationItem",
+        "to_node_label": "ServiceComponent",
+        "foreign_key": "serviceComponentAff"
+      }
     }
   ],
   "classes": [
