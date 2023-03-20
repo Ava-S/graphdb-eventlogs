@@ -424,7 +424,7 @@ class Log:
             return Log(False, False, interpreter.log_qi)
         _include = replace_undefined_value(obj.get("include"), True)
         if not _include:
-            return None
+            return Log(False, False, interpreter.log_qi)
         _has = replace_undefined_value(obj.get("has"), True)
         return cls(_include, _has, qi=interpreter.log_qi)
 

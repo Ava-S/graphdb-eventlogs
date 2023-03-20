@@ -73,7 +73,7 @@
     {
       "type": "AT",
       "constructed_by_nodes": {
-        "from_node_label": "LocationType",
+        "from_node_label": "Location",
         "to_node_label": "Class",
         "primary_key": "activity",
         "foreign_key": "activity",
@@ -83,8 +83,8 @@
     {
       "type": "PART_OF",
       "constructed_by_nodes": {
-        "from_node_label": "LocationType",
-        "to_node_label": "LocationType",
+        "from_node_label": "Location",
+        "to_node_label": "Location",
         "primary_key": "ID",
         "foreign_key": "partOf"
       }
@@ -92,7 +92,7 @@
     {
       "type": "IS",
       "constructed_by_nodes": {
-        "from_node_label": "ActivityType",
+        "from_node_label": "Activity",
         "to_node_label": "Class",
         "primary_key": "activity",
         "foreign_key": "activity",

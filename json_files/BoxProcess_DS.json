@@ -95,7 +95,7 @@
       "locations.csv"
     ],
     "labels": [
-      "LocationType"
+      "Location"
     ],
     "attributes": [
       {
@@ -147,7 +147,7 @@
       "activity_types.csv"
     ],
     "labels": [
-      "ActivityType"
+      "Activity"
     ],
     "attributes": [
       {

@@ -659,15 +659,15 @@ class CypherQueryLibrary:
         return Query(query_string=query_str, kwargs={})
 
     @staticmethod
-    def infer_items_to_load_events(entity: EntityLPG, is_load=True) -> Query:
+    def infer_items_to_load_events(entity: Entity, is_load=True) -> Query:
         query_str = '''
             MATCH (e1:Event) - [:CORR] -> (n:$entity)
             MATCH (e1) - [:CORR] ->  (equipment:Equipment)
-            MATCH (e1) - [:OBSERVED] -> (:Class) - [:AT] -> (:LocationType) - [:PART_OF*0..] -> (l:LocationType) 
+            MATCH (e1) - [:OBSERVED] -> (:Class) - [:AT] -> (:Location) - [:PART_OF*0..] -> (l:Location) 
             WITH e1, l, equipment, n
             CALL {WITH e1, l, equipment
                 MATCH ($load_event_type:Event) - [:OBSERVED] -> (c: Class)
-                MATCH (c) - [:IS] -> (:ActivityType {type: "physical", subtype: "$subtype", entity: "$entity"})  
+                MATCH (c) - [:IS] -> (:Activity {type: "physical", subtype: "$subtype", entity: "$entity"})  
                 MATCH (c) - [:AT] -> (l)
                 MATCH ($load_event_type) - [:CORR] ->  (equipment)
                 WHERE $load_event_type.timestamp $comparison e1.timestamp AND $load_event_type.$entity_id IS NULL
@@ -691,17 +691,17 @@ class CypherQueryLibrary:
         return Query(query_string=query_str, kwargs={})
 
     @staticmethod
-    def infer_items_to_events_using_location_batch_to_single(entity: EntityLPG) -> Query:
+    def infer_items_to_events_using_location_batch_to_single(entity: Entity) -> Query:
         query_str = '''
             MATCH (e2:Event) - [:CORR] -> (b:BatchPosition)
             WHERE e2.$entity_id IS NULL
             MATCH (e2) - [:CORR] -> (equipment :Equipment)
-            MATCH (e2) - [:OBSERVED] -> (c_other:Class) -[:AT]-> (:LocationType) - [:PART_OF*0..] -> (l:LocationType) 
-            MATCH (c_other) - [:IS] -> (:ActivityType {entity: "$entity"}) 
+            MATCH (e2) - [:OBSERVED] -> (c_other:Class) -[:AT]-> (:Location) - [:PART_OF*0..] -> (l:Location) 
+            MATCH (c_other) - [:IS] -> (:Activity {entity: "$entity"}) 
             WITH e2, equipment, l, b
             CALL {WITH e2, equipment ,l
                 MATCH (e0: Event)-[:OBSERVED]->(c_load:Class) - [:IS] 
-                    -> (:ActivityType {type:"physical", subtype: "load", entity:"$entity"})
+                    -> (:Activity {type:"physical", subtype: "load", entity:"$entity"})
                 MATCH (c_load) - [:AT] -> (l)
                 MATCH (e0)-[:CORR]->(resource)
                 WHERE e0.timestamp <= e2.timestamp
@@ -722,16 +722,16 @@ class CypherQueryLibrary:
         return Query(query_string=query_str, kwargs={})
 
     @staticmethod
-    def infer_items_to_events_using_location_single_to_single(entity: EntityLPG) -> Query:
+    def infer_items_to_events_using_location_single_to_single(entity: Entity) -> Query:
         query_str = '''
                     MATCH (e1 :Event) - [:CORR] -> (equipment :Equipment)
                     WHERE e1.$entity_id IS NULL
-                    MATCH (e1) - [:OBSERVED] -> (c_other:Class) -[:AT]-> (l:LocationType)
-                    MATCH (c_other) - [:IS] -> (:ActivityType {entity: "$entity"}) 
+                    MATCH (e1) - [:OBSERVED] -> (c_other:Class) -[:AT]-> (l:Location)
+                    MATCH (c_other) - [:IS] -> (:Activity {entity: "$entity"}) 
                     WITH e1, equipment, l
                     CALL {WITH e1, equipment, l
                         MATCH (e0: Event)-[:OBSERVED]->(c_load:Class) - [:IS] 
-                            -> (:ActivityType {type:"physical", subtype: "load", entity:"$entity"})
+                            -> (:Activity {type:"physical", subtype: "load", entity:"$entity"})
                         MATCH (c_load) - [:AT] -> (l)
                         MATCH (e0)-[:CORR]->(equipment)
                         WHERE e0.timestamp <= e1.timestamp
@@ -752,7 +752,7 @@ class CypherQueryLibrary:
         return Query(query_string=query_str, kwargs={})
 
     @staticmethod
-    def add_entity_to_event(entity: EntityLPG) -> Query:
+    def add_entity_to_event(entity: Entity) -> Query:
         query_str = '''
             MATCH (e:Event) - [:CORR] -> (n:$entity)
             WITH e, collect(n.ID) as related_entities_collection
@@ -771,7 +771,7 @@ class CypherQueryLibrary:
         return Query(query_string=query_str, kwargs={})
 
     @staticmethod
-    def match_entity_with_batch_position(entity: EntityLPG):
+    def match_entity_with_batch_position(entity: Entity):
         query_str = '''
                 MATCH (e:Event) - [:CORR] -> (n:$entity)
                 MATCH (e) - [:CORR] -> (b:BatchPosition)
@@ -782,7 +782,7 @@ class CypherQueryLibrary:
         return Query(query_string=query_str, kwargs={})
 
     @staticmethod
-    def match_event_with_batch_position(entity: EntityLPG):
+    def match_event_with_batch_position(entity: Entity):
         query_str = '''
                    MATCH (e:Event) - [:CORR] -> (n:$entity) - [:AT_POS] -> (b:BatchPosition)
                    MERGE (e) - [:CORR] -> (b)
