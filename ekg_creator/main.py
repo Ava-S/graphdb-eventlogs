@@ -132,10 +132,8 @@ def main() -> None:
 
     graph.print_statistics()
 
-    entity = semantic_header.get_entity("Pizza")
-    graph.save_event_log(entity, ["station"])
-    entity = semantic_header.get_entity("Station")
-    graph.save_event_log(entity, ["pizzaId"])
+    graph.save_event_log(entity="Pizza", additional_event_attributes=["station"])
+    graph.save_event_log(entity="Station", additional_event_attributes=["pizzaId"])
 
     db_connection.close_connection()
 

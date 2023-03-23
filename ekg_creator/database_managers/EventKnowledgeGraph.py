@@ -60,15 +60,19 @@ class EventKnowledgeGraph:
         return self.ekg_management.get_event_log(entity, additional_event_attributes)
 
     def save_event_log(self, entity, additional_event_attributes=None):
+        entity_object = self.semantic_header.get_entity(entity)
+        if entity_object is None:
+            raise Exception(f"Entity {entity} is not defined in the semantic header")
+
         if additional_event_attributes is None:
             additional_event_attributes = []
-        event_log = self.get_event_log(entity, additional_event_attributes)
+        event_log = self.get_event_log(entity_object, additional_event_attributes)
         df = pd.DataFrame(event_log)
 
         current_file_path = os.path.dirname(__file__)
 
         dir_path = os.path.join(current_file_path, '..', '..', 'data', self.semantic_header.name, 'event_logs')
-        file_path = os.path.join(dir_path, f"{entity.type}.csv")
+        file_path = os.path.join(dir_path, f"{entity_object.type}.csv")
         os.makedirs(dir_path, exist_ok=True)
         df.to_csv(file_path, index=True, index_label="idx")
 
