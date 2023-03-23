@@ -13,8 +13,8 @@ from database_managers import authentication
 
 connection = authentication.connections_map[authentication.Connections.LOCAL]
 
-dataset_name = 'BPIC17'
-use_sample = True
+dataset_name = 'ToyExample'
+use_sample = False
 
 query_interpreter = Interpreter("Cypher")
 semantic_header = SemanticHeader.create_semantic_header(dataset_name, query_interpreter)
@@ -23,8 +23,8 @@ number_of_steps = 100
 
 datastructures = ImportedDataStructures(dataset_name)
 
-step_clear_db = True
-step_populate_graph = True
+step_clear_db = False
+step_populate_graph = False
 
 use_preloaded_files = False  # if false, read/import files instead
 verbose = False
@@ -115,6 +115,7 @@ def main() -> None:
         print(Fore.RED + '📝 Importing and creating files' + Fore.RESET)
 
     # performance class to measure performance
+
     perf = Performance(perf_path, number_of_steps=number_of_steps)
     graph = create_graph_instance(perf)
 
@@ -125,9 +126,16 @@ def main() -> None:
         populate_graph(graph=graph, perf=perf)
 
     perf.finish()
-    perf.save()
+
+    if step_populate_graph:
+        perf.save()
 
     graph.print_statistics()
+
+    entity = semantic_header.get_entity("Pizza")
+    graph.save_event_log(entity, ["station"])
+    entity = semantic_header.get_entity("Station")
+    graph.save_event_log(entity, ["pizzaId"])
 
     db_connection.close_connection()
 

@@ -1,4 +1,7 @@
+import os
 from typing import List, Set
+
+import pandas as pd
 
 from data_managers.semantic_header import SemanticHeader
 from database_managers.db_connection import DatabaseConnection
@@ -21,6 +24,7 @@ class EventKnowledgeGraph:
                                       use_sample=use_sample, perf=perf)
         self.ekg_builder = EKGUsingSemanticHeaderBuilder(db_connection=db_connection, semantic_header=semantic_header,
                                                          batch_size=batch_size, perf=perf)
+        self.semantic_header = semantic_header
         # ensure to allocate enough memory to your database: dbms.memory.heap.max_size=5G advised
 
     # region EKG management
@@ -51,6 +55,23 @@ class EventKnowledgeGraph:
 
     def print_statistics(self):
         print(tabulate(self.get_statistics()))
+
+    def get_event_log(self, entity, additional_event_attributes):
+        return self.ekg_management.get_event_log(entity, additional_event_attributes)
+
+    def save_event_log(self, entity, additional_event_attributes=None):
+        if additional_event_attributes is None:
+            additional_event_attributes = []
+        event_log = self.get_event_log(entity, additional_event_attributes)
+        df = pd.DataFrame(event_log)
+
+        current_file_path = os.path.dirname(__file__)
+
+        dir_path = os.path.join(current_file_path, '..', '..', 'data', self.semantic_header.name, 'event_logs')
+        file_path = os.path.join(dir_path, f"{entity.type}.csv")
+        os.makedirs(dir_path, exist_ok=True)
+        df.to_csv(file_path, index=True, index_label="idx")
+
 
     # endregion
 

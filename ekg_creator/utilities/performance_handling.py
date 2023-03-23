@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 from datetime import datetime
@@ -54,4 +55,5 @@ class Performance:
         self.ctx.__exit__()
 
     def save(self):
+        os.makedirs(os.path.dirname(self.path), exist_ok=True)
         self.perf.to_csv(self.path)

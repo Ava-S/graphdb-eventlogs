@@ -1,0 +1,52 @@
+{
+  "name": "ToyExample",
+  "version": "1.0.0",
+  "entities": [
+    {
+      "constructed_by_node": {
+        "node_label": "Event"
+      },
+      "type": "Station",
+      "labels": [
+        "Station"
+      ],
+      "primary_keys": [
+        "station"
+      ],
+      "entity_attributes": [
+      ],
+      "corr": true,
+      "df": true,
+      "include_label_in_df": true,
+      "merge_duplicate_df": true
+    },
+    {
+      "constructed_by_node": {
+        "node_label": "Event"
+      },
+      "type": "Pizza",
+      "labels": [
+        "Pizza"
+      ],
+      "primary_keys": [
+        "pizzaId"
+      ],
+      "corr": true,
+      "df": true,
+      "include_label_in_df": true,
+      "merge_duplicate_df": true
+    }
+  ],
+  "classes": [
+    {
+      "label": "Event",
+      "class_identifiers": [
+        "activity"
+      ]
+    }
+  ],
+  "log": {
+    "include": true,
+    "has": true
+  }
+}

@@ -1,3 +1,7 @@
+import os
+
+import pandas as pd
+
 from data_managers.semantic_header import Entity, Relation, Relationship, SemanticHeader
 from database_managers.db_connection import DatabaseConnection
 from utilities.performance_handling import Performance
@@ -167,3 +171,5 @@ class EKGUsingSemanticHeaderBuilder:
         self.connection.exec_query(CypherQueryLibrary.add_attributes_to_classifier,
                                    **{"relation": relation, "label": label, "properties": properties,
                                       "copy_as": copy_as})
+
+

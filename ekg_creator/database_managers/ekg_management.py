@@ -1,5 +1,6 @@
 from typing import List, Set, Optional, Dict
 
+from data_managers.semantic_header import Entity
 from database_managers.db_connection import DatabaseConnection
 from utilities.performance_handling import Performance
 from database_managers.query_library import CypherQueryLibrary as cql
@@ -78,3 +79,9 @@ class EKGManagement:
             make_empty_list_if_none(edge_count) + \
             make_empty_list_if_none(agg_edge_count)
         return result
+
+    def get_event_log(self, entity: Entity, additional_event_attributes: List[str]):
+        return self.connection.exec_query(cql.get_event_log,
+                                            **{"entity": entity,
+                                               "additional_event_attributes": additional_event_attributes})
+
