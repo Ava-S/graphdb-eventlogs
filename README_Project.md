@@ -9,6 +9,7 @@ Copyright information is provided within each Project.
 
 ## Requirements
 
+### Neo4j
 Install neo4j-python-driver
 pip install neo4j
 OR
@@ -18,6 +19,12 @@ Install Neo4j from https://neo4j.com/download/
 
 - Neo4j Desktop https://neo4j.com/download-center/#desktop (recommended), or
 - Neo4j Community Server, https://neo4j.com/download-center/#community
+
+### Other packages
+- numpy
+- pandas
+- tabulate
+- tqdm
 
 ## Get started
 
