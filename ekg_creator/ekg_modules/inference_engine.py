@@ -1,4 +1,4 @@
-from database_managers.query_library import CypherQueryLibrary as cql
+from cypher_queries.query_library import CypherQueryLibrary as cql
 
 
 class InferenceEngine:

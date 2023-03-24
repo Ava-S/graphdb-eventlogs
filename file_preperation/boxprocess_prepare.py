@@ -13,10 +13,10 @@ output_path = os.path.join(current_file_path, '..', 'data', 'BoxProcess', 'prepa
 
 
 def create_boxprocess():
-    log = pd.read_csv(os.path.join(input_path, 'data.csv'), keep_default_na=True, sep=";", dtype={"Equipment": "Int64"})
+    log = pd.read_csv(os.path.join(input_path, 'event_data.csv'), keep_default_na=True, sep=";", dtype={"Equipment": "Int64"})
     log.columns = convert_columns_into_camel_case(log.columns.values)
     log['log'] = 'Running Example'
-    log.to_csv(os.path.join(output_path, 'data.csv'), index=True, index_label="idx")
+    log.to_csv(os.path.join(output_path, 'event_data.csv'), index=True, index_label="idx")
 
 
 def main():

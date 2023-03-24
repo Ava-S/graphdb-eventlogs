@@ -1,9 +1,9 @@
 [
   {
     "name": "BoxProcess",
-    "file_directory": "..\\data\\BoxProcess\\",
+    "file_directory": "..\\box_process_data\\",
     "file_names": [
-      "data.csv"
+      "event_data.csv"
     ],
     "labels": [
       "Event"
@@ -90,7 +90,7 @@
   },
   {
     "name": "location",
-    "file_directory": "..\\data\\BoxProcess\\",
+    "file_directory": "..\\box_process_data\\",
     "file_names": [
       "location_records.csv"
     ],
@@ -133,7 +133,7 @@
   },
   {
     "name": "activity_types",
-    "file_directory": "..\\data\\BoxProcess\\",
+    "file_directory": "..\\box_process_data\\",
     "file_names": [
       "activity_records.csv"
     ],

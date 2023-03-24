@@ -1,15 +1,14 @@
 from typing import List, Set
 
-from data_managers.semantic_header import SemanticHeader, Entity
+from data_managers.semantic_header import SemanticHeader
 from database_managers.db_connection import DatabaseConnection
-from database_managers.ekg_builder_semantic_header import EKGUsingSemanticHeaderBuilder
-from database_managers.ekg_custom import EKGCustom
-from database_managers.ekg_management import EKGManagement
+from ekg_modules.ekg_builder_semantic_header import EKGUsingSemanticHeaderBuilder
+from ekg_modules.db_management import DBManagement
 from data_managers.datastructures import ImportedDataStructures
-from data_managers.data_importer import Importer
+from ekg_modules.data_importer import Importer
 from utilities.performance_handling import Performance
 
-from database_managers.inference_engine import InferenceEngine
+from ekg_modules.inference_engine import InferenceEngine
 
 from tabulate import tabulate
 
@@ -21,7 +20,7 @@ class EventKnowledgeGraph:
                  semantic_header: SemanticHeader = None,
                  perf: Performance = None):
         # classes responsible for executing queries
-        self.ekg_management = EKGManagement(db_connection=db_connection, db_name=db_name, perf=perf)
+        self.ekg_management = DBManagement(db_connection=db_connection, db_name=db_name, perf=perf)
         self.data_importer = Importer(db_connection, data_structures=event_tables, batch_size=batch_size,
                                       use_sample=use_sample, perf=perf)
         self.ekg_builder = EKGUsingSemanticHeaderBuilder(db_connection=db_connection, semantic_header=semantic_header,
