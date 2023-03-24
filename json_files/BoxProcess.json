@@ -98,6 +98,27 @@
         "foreign_key": "activity",
         "reversed": true
       }
+    },
+    {
+      "type": "AT_POS",
+      "constructed_by_relations": {
+        "antecedents": [
+          "(e:Event) - [:CORR] -> (b:Box)",
+          "(e) - [:CORR] -> (bp:BatchPosition)"
+        ],
+        "consequent": "(b:Box) - [:AT_POS] -> (bp:BatchPosition)"
+      }
+    },
+    {
+      "type": "CORR",
+      "include_properties": false,
+      "constructed_by_relations": {
+        "antecedents": [
+          "(e:Event) - [:CORR] -> (b:Box)",
+          "(b) - [:AT_POS] -> (bp:BatchPosition)"
+        ],
+        "consequent": "(e:Event) - [:CORR] -> (bp:BatchPosition)"
+      }
     }
   ],
   "classes": [

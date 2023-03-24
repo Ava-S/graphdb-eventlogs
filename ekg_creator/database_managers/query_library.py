@@ -263,22 +263,24 @@ class CypherQueryLibrary:
 
         to_node_id = relation_constructor.get_to_node_label()
         first_lower_case = re.search("[a-z]", to_node_id).start()
-        to_node_id = to_node_id[:first_lower_case].lower() + to_node_id[first_lower_case + 1:] + "Id"
+        to_node_id = to_node_id[:first_lower_case - 1].lower() + to_node_id[first_lower_case + 1:] + "Id"
+
+        properties = f'{{type:"Rel", {from_node_id}: {from_node_name}.ID, {to_node_id}: {to_node_name}.ID}}' \
+            if relation.include_properties else ""
 
         query_str = '''
                         CALL apoc.periodic.iterate(
                         '
                         $antecedents_query
                         RETURN distinct $from_node, $to_node',
-                        'MERGE ($from_node) - [:$type {type:"Rel",
-                            $from_node_id: $from_node.ID,
-                            $to_node_id: $to_node.ID}] -> ($to_node)',
+                        'MERGE ($from_node) - [:$type $properties] -> ($to_node)',
                         {batchSize: $batch_size})
                         '''
 
-        query_str = Template(query_str).substitute(antecedents_query=antecedents_query, from_node=from_node_name, to_node=to_node_name,
+        query_str = Template(query_str).substitute(antecedents_query=antecedents_query, from_node=from_node_name,
+                                                   to_node=to_node_name,
                                                    type=relation_type,
-                                                   from_node_id=from_node_id, to_node_id=to_node_id,
+                                                   properties=properties,
                                                    batch_size=batch_size)
 
         return Query(query_string=query_str, kwargs={})
@@ -608,7 +610,7 @@ class CypherQueryLibrary:
         query_count_relations = """
                 // List all rel types and counts
                 MATCH () - [r] -> ()
-                WHERE r.type is  NULL
+                // WHERE r.type is  NULL
                 WITH r, CASE Type(r)
                   WHEN 'CORR' THEN 0
                   WHEN 'OBSERVED' THEN 1
@@ -659,61 +661,57 @@ class CypherQueryLibrary:
         return Query(query_string=query_str, kwargs={})
 
     @staticmethod
-    def infer_items_to_load_events(entity: Entity, is_load=True) -> Query:
+    def get_query_infer_items_propagate_upwards_multiple_levels(entity: Entity, is_load=True) -> Query:
         query_str = '''
             MATCH (f2:Event) - [:CORR] -> (n:$entity)
             MATCH (f2) - [:CORR] ->  (equipment:Equipment)
-            MATCH (f2) - [:OBSERVED] -> (:Class) - [:AT] -> (:Location) - [:PART_OF*0..] -> (l:Location) 
-            WITH f2, l, equipment, n
-            CALL {WITH f2, l, equipment
-                MATCH ($load_event_type:Event) - [:OBSERVED] -> (c: Class)
-                MATCH (c) - [:IS] -> (:Activity {type: "physical", subtype: "$subtype", entity: "$entity"})  
-                MATCH (c) - [:AT] -> (l)
-                MATCH ($load_event_type) - [:CORR] ->  (equipment)
-                WHERE $load_event_type.timestamp $comparison f2.timestamp
-                RETURN $load_event_type as $load_event_type_first
-                ORDER BY $load_event_type.timestamp $order_type
+            MATCH (f2) - [:OBSERVED] -> (c2:Class) - [:AT] -> (l:Location) - [:PART_OF*0..] -> (k:Location) 
+            WITH f2, k, equipment, n
+            CALL {WITH f2, k, equipment
+                MATCH (f0:Event) - [:OBSERVED] -> (c0: Class)
+                MATCH (c0) - [:IS] -> (a0:Activity {type: "physical", subtype: "$subtype", entity: "$entity"})  
+                MATCH (c0) - [:AT] -> (k)
+                MATCH (f0) - [:CORR] ->  (equipment)
+                WHERE f0.timestamp $comparison f2.timestamp
+                RETURN f0 as f0_first
+                ORDER BY f0.timestamp $order_type
                 LIMIT 1}
-            MERGE ($load_event_type_first) - [:CORR] -> (n)
+            MERGE (f0_first) - [:CORR] -> (n)
             '''
 
         subtype = "load" if is_load else "unload"
-        load_event_type = "e0" if is_load else "e2"
-        load_event_type_first = "e0_first_preceding" if is_load else "e2_first_successive"
         order_type = "DESC" if is_load else ""
         comparison = "<=" if is_load else ">="
         query_str = Template(query_str).substitute(entity=entity.type, entity_id=entity.get_primary_keys()[0],
                                                    subtype=subtype, comparison=comparison,
-                                                   load_event_type=load_event_type,
-                                                   load_event_type_first=load_event_type_first,
                                                    order_type=order_type)
 
         return Query(query_string=query_str, kwargs={})
 
     @staticmethod
-    def infer_items_to_events_using_location_batch_to_single(entity: Entity) -> Query:
+    def get_query_infer_items_propagate_downwards_multiple_level_w_batching(entity: Entity) -> Query:
         query_str = '''
-            MATCH (e2:Event) - [:CORR] -> (b:BatchPosition)
-            WHERE e2.$entity_id IS NULL
-            MATCH (e2) - [:CORR] -> (equipment :Equipment)
-            MATCH (e2) - [:OBSERVED] -> (c_other:Class) -[:AT]-> (:Location) - [:PART_OF*0..] -> (l:Location) 
-            MATCH (c_other) - [:IS] -> (:Activity {entity: "$entity"}) 
-            WITH e2, equipment, l, b
-            CALL {WITH e2, equipment ,l
-                MATCH (e0: Event)-[:OBSERVED]->(c0:Class) - [:IS] 
-                    -> (:Activity {type:"physical", subtype: "load", entity:"$entity"})
-                MATCH (c0) - [:AT] -> (l)
-                MATCH (e0)-[:CORR]->(resource)
-                WHERE e0.timestamp <= e2.timestamp
-                // find the first preceding e0
-                RETURN e0 as e0_first_prec
-                ORDER BY e0.timestamp DESC
+            MATCH (f2:Event) - [:CORR] -> (bp:BatchPosition)
+            MATCH (f2) - [:CORR] -> (equipment :Equipment)
+            MATCH (f2) - [:OBSERVED] -> (c2:Class) -[:AT]-> (l:Location) - [:PART_OF*0..] -> (k:Location) 
+            // ensure f2 should have operated on the required by checking that the activity operates on that entity
+            MATCH (c2) - [:IS] -> (:Activity {entity: "$entity"}) 
+            WITH f2, equipment, k, bp
+            CALL {WITH f2, equipment, k
+                MATCH (f0: Event)-[:OBSERVED]->(c0:Class) - [:IS] 
+                    -> (a0:Activity {type:"physical", subtype: "load", entity:"$entity"})
+                MATCH (c0) - [:AT] -> (k)
+                MATCH (f0)-[:CORR]->(resource)
+                WHERE f0.timestamp <= f2.timestamp
+                // find the first preceding f0
+                RETURN f0 as f0_first_prec
+                ORDER BY f0.timestamp DESC
                 LIMIT 1
             }
-            // only merge when e0_first_prec is actually related to a Box
-            WITH e2, [(e0_first_prec)-[:CORR]->(n:$entity)- [:AT_POS] -> (b) | n] as related_n
+            // only merge when f0_first_prec is actually related to the required entity
+            WITH f2, [(f0_first_prec)-[:CORR]->(n:$entity)- [:AT_POS] -> (bp) | n] as related_n
             FOREACH (n in related_n | 
-                MERGE (e2) - [:CORR] -> (n)
+                MERGE (f2) - [:CORR] -> (n)
             )
         '''
 
@@ -722,12 +720,12 @@ class CypherQueryLibrary:
         return Query(query_string=query_str, kwargs={})
 
     @staticmethod
-    def infer_items_to_events_using_location_single_to_single(entity: Entity) -> Query:
+    def get_query_infer_items_propagate_downwards_one_level(entity: Entity) -> Query:
         query_str = '''
                     MATCH (f1 :Event) - [:CORR] -> (equipment :Equipment)
-                    WHERE f1.$entity_id IS NULL
                     MATCH (f1) - [:OBSERVED] -> (c1:Class) -[:AT]-> (l:Location)
-                    MATCH (c1) - [:IS] -> (:Activity {entity: "$entity"}) 
+                    // ensure f2 should have operated on the required by checking that the activity operates on that entity
+                    MATCH (c1) - [:IS] -> (a1:Activity {entity: "$entity"}) 
                     WITH f1, equipment, l
                     CALL {WITH f1, equipment, l
                         MATCH (f0: Event)-[:OBSERVED]->(c0:Class) - [:IS] 
@@ -773,20 +771,10 @@ class CypherQueryLibrary:
     @staticmethod
     def match_entity_with_batch_position(entity: Entity):
         query_str = '''
-                MATCH (e:Event) - [:CORR] -> (n:$entity)
-                MATCH (e) - [:CORR] -> (b:BatchPosition)
-                MERGE (n) - [:AT_POS] -> (b)
+                MATCH (e:Event) - [:CORR] -> (b:Box)
+                MATCH (e) - [:CORR] -> (bp:BatchPosition)
+                MERGE (b:Box) - [:AT_POS] -> (bp:BatchPosition)
             '''
-
-        query_str = Template(query_str).substitute(entity=entity.type)
-        return Query(query_string=query_str, kwargs={})
-
-    @staticmethod
-    def match_event_with_batch_position(entity: Entity):
-        query_str = '''
-                   MATCH (e:Event) - [:CORR] -> (n:$entity) - [:AT_POS] -> (b:BatchPosition)
-                   MERGE (e) - [:CORR] -> (b)
-               '''
 
         query_str = Template(query_str).substitute(entity=entity.type)
         return Query(query_string=query_str, kwargs={})

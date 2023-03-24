@@ -124,8 +124,8 @@ class Relationship(ABC):
         _to_node = Node.from_string(nodes[relation_directions[direction]["to_node"]], interpreter)
 
         return Relationship(relation_name=_relation_name, relation_type=_relation_type,
-                   from_node=_from_node, to_node=_to_node, properties=[], has_direction=_has_direction,
-                   qi=interpreter.relationship_qi)
+                            from_node=_from_node, to_node=_to_node, properties=[], has_direction=_has_direction,
+                            qi=interpreter.relationship_qi)
 
     def get_relationship_pattern(self):
         return self.qi.get_relationship_pattern(from_node=self.from_node, to_node=self.to_node,
@@ -153,8 +153,8 @@ class RelationConstructorByNodes(ABC):
         _primary_key = replace_undefined_value(obj.get("primary_key"), "ID")
         _reversed = replace_undefined_value(obj.get("reversed"), False)
         return RelationConstructorByNodes(from_node_label=_from_node_label, to_node_label=_to_node_label,
-                   foreign_key=_foreign_key, primary_key=_primary_key,
-                   reversed=_reversed, qi=interpreter.relation_constructor_by_nodes_qi)
+                                          foreign_key=_foreign_key, primary_key=_primary_key,
+                                          reversed=_reversed, qi=interpreter.relation_constructor_by_nodes_qi)
 
 
 @dataclass
@@ -181,9 +181,11 @@ class RelationConstructorByRelations(ABC):
         _from_node_label = _consequent.from_node.node_label
         _to_node_label = _consequent.to_node.node_label
 
-        return RelationConstructorByRelations(antecedents=_antecedents, consequent=_consequent, from_node_name=_from_node_name,
-                   to_node_name=_to_node_name, from_node_label=_from_node_label, to_node_label=_to_node_label,
-                   qi=interpreter.relation_constructor_by_relations_qi)
+        return RelationConstructorByRelations(antecedents=_antecedents, consequent=_consequent,
+                                              from_node_name=_from_node_name,
+                                              to_node_name=_to_node_name, from_node_label=_from_node_label,
+                                              to_node_label=_to_node_label,
+                                              qi=interpreter.relation_constructor_by_relations_qi)
 
     def get_from_node_name(self):
         return self.consequent.from_node.node_name
@@ -222,6 +224,7 @@ class Relation(ABC):
     type: str
     constructed_by: Union[RelationConstructorByNodes, RelationConstructorByRelations, RelationConstructorByQuery]
     constructor_type: str
+    include_properties: bool
     qi: Any
 
     @staticmethod
@@ -244,8 +247,11 @@ class Relation(ABC):
 
         _constructor_type = _constructed_by.__class__.__name__
 
+        _include_properties = replace_undefined_value(obj.get("include_properties"), True)
+
         return Relation(_include, _type, constructed_by=_constructed_by, constructor_type=_constructor_type,
-                   qi=interpreter.relation_qi)
+                        include_properties=_include_properties,
+                        qi=interpreter.relation_qi)
 
 
 @dataclass
@@ -262,7 +268,8 @@ class EntityConstructorByNode(ABC):
         _node_label = obj.get("node_label")
         _conditions = create_list(Condition, obj.get("conditions"), interpreter.condition_qi)
 
-        return EntityConstructorByNode(node_label=_node_label, conditions=_conditions, qi=interpreter.entity_constructor_by_nodes_qi)
+        return EntityConstructorByNode(node_label=_node_label, conditions=_conditions,
+                                       qi=interpreter.entity_constructor_by_nodes_qi)
 
 
 @dataclass
@@ -281,7 +288,7 @@ class EntityConstructorByRelation(ABC):
         _conditions = create_list(Condition, obj.get("conditions"), interpreter)
 
         return EntityConstructorByRelation(relation=_relation, conditions=_conditions,
-                   qi=interpreter.entity_constructor_by_relation_qi)
+                                           qi=interpreter.entity_constructor_by_relation_qi)
 
     def get_relation_type(self):
         return self.relation.relation_type
@@ -350,9 +357,11 @@ class Entity(ABC):
 
         _constructed_by = EntityConstructorByNode.from_dict(obj.get("constructed_by_node"), interpreter=interpreter)
         if _constructed_by is None:
-            _constructed_by = EntityConstructorByRelation.from_dict(obj.get("constructed_by_relation"), interpreter=interpreter)
+            _constructed_by = EntityConstructorByRelation.from_dict(obj.get("constructed_by_relation"),
+                                                                    interpreter=interpreter)
         if _constructed_by is None:
-            _constructed_by = EntityConstructorByQuery.from_dict(obj.get("constructed_by_query"), interpreter=interpreter)
+            _constructed_by = EntityConstructorByQuery.from_dict(obj.get("constructed_by_query"),
+                                                                 interpreter=interpreter)
 
         _constructor_type = _constructed_by.__class__.__name__
         _type = obj.get("type")
@@ -374,12 +383,13 @@ class Entity(ABC):
         _delete_parallel_df = _df and obj.get("delete_parallel_df")
 
         return Entity(include=_include, constructed_by=_constructed_by, constructor_type=_constructor_type,
-                   type=_type, labels=_labels, primary_keys=_primary_keys,
-                   all_entity_attributes=_all_entity_attributes,
-                   entity_attributes_wo_primary_keys=_entity_attributes_wo_primary_keys,
-                   corr=_corr, df=_df, include_label_in_df=_include_label_in_df, merge_duplicate_df=_merge_duplicate_df,
-                   delete_parallel_df=_delete_parallel_df,
-                   qi=interpreter.entity_qi)
+                      type=_type, labels=_labels, primary_keys=_primary_keys,
+                      all_entity_attributes=_all_entity_attributes,
+                      entity_attributes_wo_primary_keys=_entity_attributes_wo_primary_keys,
+                      corr=_corr, df=_df, include_label_in_df=_include_label_in_df,
+                      merge_duplicate_df=_merge_duplicate_df,
+                      delete_parallel_df=_delete_parallel_df,
+                      qi=interpreter.entity_qi)
 
     def get_label_string(self):
         return self.qi.get_label_string(self.labels)
@@ -477,9 +487,11 @@ class SemanticHeader(ABC):
         _classes = create_list(Class, obj.get("classes"), interpreter)
         _log = Log.from_dict(obj.get("log"), interpreter)
         return SemanticHeader(_name, _version,
-                   _entities_derived_from_nodes, _entities_derived_from_relations, _entities_derived_from_query,
-                   _relations_derived_from_nodes, _relations_derived_from_relations, _relations_derived_from_query,
-                   _classes, _log)
+                              _entities_derived_from_nodes, _entities_derived_from_relations,
+                              _entities_derived_from_query,
+                              _relations_derived_from_nodes, _relations_derived_from_relations,
+                              _relations_derived_from_query,
+                              _classes, _log)
 
     @staticmethod
     def create_semantic_header(dataset_name: str, query_interpreter, **kwargs):

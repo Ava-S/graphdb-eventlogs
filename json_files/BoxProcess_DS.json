@@ -1,7 +1,7 @@
 [
   {
     "name": "BoxProcess",
-    "file_directory": "..\\data\\BoxProcess\\prepared\\",
+    "file_directory": "..\\data\\BoxProcess\\",
     "file_names": [
       "data.csv"
     ],
@@ -10,7 +10,7 @@
     ],
     "attributes": [
       {
-        "name": "idx",
+        "name": "ID",
         "columns": [
           {
             "name": "idx",
@@ -92,7 +92,7 @@
     "name": "location",
     "file_directory": "..\\data\\BoxProcess\\",
     "file_names": [
-      "locations.csv"
+      "location_records.csv"
     ],
     "labels": [
       "Location"
@@ -128,15 +128,6 @@
           }
         ],
         "mandatory": true
-      },
-      {
-        "name": "equipment",
-        "columns": [
-          {
-            "name": "equipment"
-          }
-        ],
-        "mandatory": true
       }
     ]
   },
@@ -144,7 +135,7 @@
     "name": "activity_types",
     "file_directory": "..\\data\\BoxProcess\\",
     "file_names": [
-      "activity_types.csv"
+      "activity_records.csv"
     ],
     "labels": [
       "Activity"

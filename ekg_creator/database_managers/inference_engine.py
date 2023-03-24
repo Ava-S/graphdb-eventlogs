@@ -10,8 +10,8 @@ class InferenceEngine:
         if self.perf is not None:
             self.perf.finished_step(activity=message)
 
-    def infer_items_to_load_events(self, entity, is_load=True):
-        self.connection.exec_query(cql.infer_items_to_load_events,
+    def infer_items_propagate_upwards_multiple_levels(self, entity, is_load=True):
+        self.connection.exec_query(cql.get_query_infer_items_propagate_upwards_multiple_levels,
                                    **{"entity": entity,
                                       "is_load": is_load})
         self._write_message_to_performance("Batch items are inferred")
@@ -20,16 +20,12 @@ class InferenceEngine:
         self.connection.exec_query(cql.match_entity_with_batch_position, **{"entity": entity})
         self._write_message_to_performance("Entities are matched with batch position")
 
-    def match_event_with_batch_position(self, entity):
-        self.connection.exec_query(cql.match_event_with_batch_position, **{"entity": entity})
-        self._write_message_to_performance("Events are matched with batch position")
-
-    def infer_items_to_events_using_location_batch_to_single(self, entity):
-        self.connection.exec_query(cql.infer_items_to_events_using_location_batch_to_single,
+    def infer_items_propagate_downwards_multiple_level_w_batching(self, entity):
+        self.connection.exec_query(cql.get_query_infer_items_propagate_downwards_multiple_level_w_batching,
                                    **{"entity": entity})
 
-    def infer_items_to_events_using_location_single_to_single(self, entity):
-        self.connection.exec_query(cql.infer_items_to_events_using_location_single_to_single, **{"entity": entity})
+    def infer_items_propagate_downwards_one_level(self, entity):
+        self.connection.exec_query(cql.get_query_infer_items_propagate_downwards_one_level, **{"entity": entity})
 
     def add_entity_to_event(self, entity):
         self.connection.exec_query(cql.add_entity_to_event, **{"entity": entity})
