@@ -1,0 +1,9 @@
+name,partOf,activity
+FillStation,AssemblyLine,F
+FillStation,AssemblyLine,LoadFS
+FillStation,AssemblyLine,UnloadFS
+SealStation,AssemblyLine,S
+SealStation,AssemblyLine,LoadSS
+SealStation,AssemblyLine,UnloadSS
+AssemblyLine,,LoadAL
+AssemblyLine,,UnloadAL
