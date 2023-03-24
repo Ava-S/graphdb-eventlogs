@@ -29,7 +29,41 @@ Install Neo4j from https://neo4j.com/download/
 - ensure to allocate enough memory to your database, advised: dbms.memory.heap.max_size=5G
 - the script expects the Neo4j APOC library to be installed as a plugin, see https://neo4j.com/labs/apoc/
 
-### Data set specific information
+How to use
+----------
+
+For data import & inference
+
+1. start the Neo4j server
+1. run main.py
+
+## Projects
+
+The following projects are part of this repository
+
+### Missing Case Identifiers Inference
+
+Method to infer missing case identifiers in event data by exploiting knowledge about the activities and their locations.
+
+
+### semantic header (json files)
+First version for semantic header for system/event knowledge graphs: https://multiprocessmining.org/2022/10/26/data-storage-vs-data-semantics-for-object-centric-event-data/
+
+### event knowledge graphs
+
+Data model and generic query templates for translating and integrating a set of related CSV event logs into single event
+graph over multiple behavioral dimensions, stored as labeled property graph in [Neo4J](https://neo4j.com/).
+See [csv_to_eventgraph_neo4j/README.txt](ekg_creator/README.txt)
+
+Publications:
+
+- Stefan Esser, Dirk Fahland: Multi-Dimensional Event Data in Graph
+  Databases. [CoRR abs/2005.14552](https://arxiv.org/abs/2005.14552), [Journal on Data Semantics, DOI: 10.1007/s13740-021-00122-1](https://dx.doi.org/10.1007/s13740-021-00122-1) (
+  2020)
+- Esser, Stefan. (2020, February 19). A Schema Framework for Graph Event Data. Master thesis. Eindhoven University of
+  Technology. https://doi.org/10.5281/zenodo.3820037
+
+## Data set & scripts
 We provide data and scripts for the running box process example
 
 #### Datasets
@@ -83,38 +117,6 @@ Contains repeatable pieces of Cypher Queries for all necessary parts.
 - cypher_queries/query_library --> contains all cypher queries for the EKG modules
 
 
-How to use
-----------
 
-For data import & inference
-
-1. start the Neo4j server
-1. run main.py
-
-## Projects
-
-The following projects are part of this repository
-
-### Missing Case Identifiers Inference
-
-Method to infer missing case identifiers in event data by exploiting knowledge about the activities and their locations.
-
-
-### semantic header (json files)
-First version for semantic header for system/event knowledge graphs: https://multiprocessmining.org/2022/10/26/data-storage-vs-data-semantics-for-object-centric-event-data/
-
-### event knowledge graphs
-
-Data model and generic query templates for translating and integrating a set of related CSV event logs into single event
-graph over multiple behavioral dimensions, stored as labeled property graph in [Neo4J](https://neo4j.com/).
-See [csv_to_eventgraph_neo4j/README.txt](ekg_creator/README.txt)
-
-Publications:
-
-- Stefan Esser, Dirk Fahland: Multi-Dimensional Event Data in Graph
-  Databases. [CoRR abs/2005.14552](https://arxiv.org/abs/2005.14552), [Journal on Data Semantics, DOI: 10.1007/s13740-021-00122-1](https://dx.doi.org/10.1007/s13740-021-00122-1) (
-  2020)
-- Esser, Stefan. (2020, February 19). A Schema Framework for Graph Event Data. Master thesis. Eindhoven University of
-  Technology. https://doi.org/10.5281/zenodo.3820037
 
 
