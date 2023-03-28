@@ -5,10 +5,12 @@ import pandas as pd
 
 from data_managers.semantic_header import SemanticHeader
 from database_managers.db_connection import DatabaseConnection
+from ekg_modules.ekg_analysis import EKGAnalysis
 from ekg_modules.ekg_builder_semantic_header import EKGUsingSemanticHeaderBuilder
 from ekg_modules.db_management import DBManagement
 from data_managers.datastructures import ImportedDataStructures
 from ekg_modules.data_importer import Importer
+from ekg_modules.ekg_custom_module import CustomModule
 from utilities.performance_handling import Performance
 
 from ekg_modules.inference_engine import InferenceEngine
@@ -29,6 +31,8 @@ class EventKnowledgeGraph:
         self.ekg_builder = EKGUsingSemanticHeaderBuilder(db_connection=db_connection, semantic_header=semantic_header,
                                                          batch_size=batch_size, perf=perf)
         self.inference_engine = InferenceEngine(db_connection=db_connection, perf=perf)
+        self.ekg_analysis = EKGAnalysis(db_connection=db_connection, perf=perf)
+        self.custom_module = CustomModule(db_connection=db_connection, perf=perf)
 
         self.semantic_header = semantic_header
 
@@ -113,8 +117,8 @@ class EventKnowledgeGraph:
     def correlate_events_to_reification(self) -> None:
         self.ekg_builder.correlate_events_to_reification()
 
-    def create_df_edges(self) -> None:
-        self.ekg_builder.create_df_edges()
+    def create_df_edges(self, entity_types = None) -> None:
+        self.ekg_builder.create_df_edges(entity_types)
 
     def merge_duplicate_df(self):
         self.ekg_builder.merge_duplicate_df()
@@ -169,3 +173,13 @@ class EventKnowledgeGraph:
         self.add_entity_to_event(entity_type=entity_type)
 
     # endregion
+
+    def create_df_process_model(self, entity_type):
+        entity = self.semantic_header.get_entity(entity_type)
+        if entity_type is None:
+            raise ValueError(f"{entity_type} is not defined in semantic header")
+        self.ekg_analysis.create_df_process_model(entity)
+
+    def do_custom_query(self, query_name, **kwargs):
+        self.custom_module.do_custom_query(query_name, **kwargs)
+

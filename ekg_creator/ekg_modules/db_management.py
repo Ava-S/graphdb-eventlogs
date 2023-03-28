@@ -85,3 +85,5 @@ class DBManagement:
                                             **{"entity": entity,
                                                "additional_event_attributes": additional_event_attributes})
 
+    def do_custom_query(self, query_function, **kwargs):
+        return self.connection.exec_query(query_function, **kwargs)

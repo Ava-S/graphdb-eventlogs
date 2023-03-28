@@ -11,6 +11,8 @@ from colorama import Fore
 
 from database_managers import authentication
 
+from cypher_queries.custom_query_library import CustomCypherQueryLibrary as ccql
+
 connection = authentication.connections_map[authentication.Connections.LOCAL]
 
 dataset_name = 'ToyExample'
@@ -25,6 +27,7 @@ datastructures = ImportedDataStructures(dataset_name)
 
 step_clear_db = True
 step_populate_graph = True
+step_analysis = True
 
 use_preloaded_files = False  # if false, read/import files instead
 verbose = False
@@ -123,13 +126,22 @@ def main() -> None:
     if step_populate_graph:
         populate_graph(graph=graph, perf=perf)
 
+    if step_analysis:
+        graph.create_df_process_model(entity_type="Pizza")
+        graph.do_custom_query("create_stations", entity_type="Pizza")
+        graph.do_custom_query("correlate_events_to_station")
+
+        graph.create_df_edges(entity_types=["Station"])
+
+        graph.save_event_log(entity="Pizza", additional_event_attributes=["sensor"])
+        graph.save_event_log(entity="Station", additional_event_attributes=["pizzaId"])
+
+
     perf.finish()
     perf.save()
 
     graph.print_statistics()
 
-    graph.save_event_log(entity="Pizza", additional_event_attributes=["station"])
-    graph.save_event_log(entity="Station", additional_event_attributes=["pizzaId"])
 
     db_connection.close_connection()
 

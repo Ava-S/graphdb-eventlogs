@@ -3,15 +3,15 @@
   "version": "1.0.0",
   "entities": [
     {
+      "type": "Sensor",
       "constructed_by_node": {
         "node_label": "Event"
       },
-      "type": "Station",
       "labels": [
-        "Station"
+        "Sensor"
       ],
       "primary_keys": [
-        "station"
+        "sensor"
       ],
       "entity_attributes": [
       ],
@@ -21,10 +21,25 @@
       "merge_duplicate_df": true
     },
     {
+      "type": "Station",
+      "entities_derived_from_nodes": {
+      },
+      "labels": [
+      ],
+      "primary_keys": [
+      ],
+      "entity_attributes": [
+      ],
+      "corr": true,
+      "df": true,
+      "include_label_in_df": true,
+      "merge_duplicate_df": true
+    },
+    {
+      "type": "Pizza",
       "constructed_by_node": {
         "node_label": "Event"
       },
-      "type": "Pizza",
       "labels": [
         "Pizza"
       ],

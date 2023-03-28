@@ -30,16 +30,16 @@
           "name": "activity",
           "columns": [
             {
-              "name": "station"
+              "name": "sensor"
             }
           ],
           "mandatory": true
         },
         {
-          "name": "station",
+          "name": "sensor",
           "columns": [
             {
-              "name": "station"
+              "name": "sensor"
             }
           ],
           "mandatory": true
