@@ -71,9 +71,10 @@ class DBManagement:
                 return []
 
         node_count = self.connection.exec_query(cql.get_node_count_query)
-        # edge_count = self.connection.exec_query(cql.get_edge_count_query)
+        edge_count = self.connection.exec_query(cql.get_edge_count_query)
         agg_edge_count = self.connection.exec_query(cql.get_aggregated_edge_count_query)
         result = \
             make_empty_list_if_none(node_count) + \
+            make_empty_list_if_none(edge_count) + \
             make_empty_list_if_none(agg_edge_count)
         return result

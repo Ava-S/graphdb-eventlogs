@@ -599,8 +599,13 @@ class CypherQueryLibrary:
                 // List all agg rel types and counts
                 MATCH () - [r] -> ()
                 WHERE r.type is NOT NULL
-                WITH toUpper(r.type) as type, count(r) as numberOfRelations
-                RETURN type, numberOfRelations 
+                WITH r, CASE toUpper(r.type)
+                  WHEN 'REL' THEN 0
+                  WHEN 'DF' THEN 1
+                  ELSE 2
+                END as sortOrder
+                WITH toUpper(r.type) as aggType, count(r) as aggNumberOfRelations, sortOrder
+                RETURN aggType, aggNumberOfRelations ORDER BY sortOrder
             """
 
         return Query(query_string=query_count_relations, kwargs={})

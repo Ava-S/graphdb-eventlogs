@@ -13,7 +13,7 @@ from database_managers import authentication
 
 connection = authentication.connections_map[authentication.Connections.LOCAL]
 
-dataset_name = 'BPIC17'
+dataset_name = 'BPIC14'
 use_sample = True
 
 query_interpreter = Interpreter("Cypher")
@@ -100,8 +100,6 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
     graph.merge_duplicate_df()
     perf.finished_step(log_message=f"Merged duplicate [:DF] edges done")
 
-    # graph.df_class_relations()
-    # perf.finished_step(log_message=f"[:DF_C] edges done")
 
 
 def main() -> None:
