@@ -5,27 +5,32 @@ import pandas as pd
 
 from data_managers.semantic_header import SemanticHeader
 from database_managers.db_connection import DatabaseConnection
-from database_managers.ekg_builder_semantic_header import EKGUsingSemanticHeaderBuilder
-from database_managers.ekg_management import EKGManagement
+from ekg_modules.ekg_builder_semantic_header import EKGUsingSemanticHeaderBuilder
+from ekg_modules.db_management import DBManagement
 from data_managers.datastructures import ImportedDataStructures
-from data_managers.data_importer import Importer
+from ekg_modules.data_importer import Importer
 from utilities.performance_handling import Performance
+
+from ekg_modules.inference_engine import InferenceEngine
 
 from tabulate import tabulate
 
 
+# ensure to allocate enough memory to your database: dbms.memory.heap.max_size=5G advised
 class EventKnowledgeGraph:
-    def __init__(self, db_connection: DatabaseConnection, db_name: str, batch_size: int,
-                 event_tables: ImportedDataStructures, use_sample: bool = False,
+    def __init__(self, db_connection: DatabaseConnection, db_name: str, event_tables: ImportedDataStructures,
+                 batch_size: int = 5000, use_sample: bool = False,
                  semantic_header: SemanticHeader = None,
                  perf: Performance = None):
-        self.ekg_management = EKGManagement(db_connection=db_connection, db_name=db_name, perf=perf)
+        # classes responsible for executing queries
+        self.ekg_management = DBManagement(db_connection=db_connection, db_name=db_name, perf=perf)
         self.data_importer = Importer(db_connection, data_structures=event_tables, batch_size=batch_size,
                                       use_sample=use_sample, perf=perf)
         self.ekg_builder = EKGUsingSemanticHeaderBuilder(db_connection=db_connection, semantic_header=semantic_header,
                                                          batch_size=batch_size, perf=perf)
+        self.inference_engine = InferenceEngine(db_connection=db_connection, perf=perf)
+
         self.semantic_header = semantic_header
-        # ensure to allocate enough memory to your database: dbms.memory.heap.max_size=5G advised
 
     # region EKG management
     """Define all queries and return their results (if required)"""
@@ -99,8 +104,8 @@ class EventKnowledgeGraph:
     def create_entity_relations_using_nodes(self) -> None:
         self.ekg_builder.create_entity_relations_using_nodes()
 
-    def create_entity_relations_using_relations(self) -> None:
-        self.ekg_builder.create_entity_relations_using_relations()
+    def create_entity_relations_using_relations(self, relation_types=None) -> None:
+        self.ekg_builder.create_entity_relations_using_relations(relation_types)
 
     def create_entities_by_relations(self) -> None:
         self.ekg_builder.create_entities_by_relations()
@@ -125,5 +130,42 @@ class EventKnowledgeGraph:
 
     def create_static_nodes_and_relations(self):
         self.ekg_builder.create_static_nodes_and_relations()
+
+    def add_entity_to_event(self, entity_type: str):
+        entity = self.semantic_header.get_entity(entity_type)
+        if entity_type is None:
+            raise ValueError(f"{entity_type} is not defined in semantic header")
+        self.inference_engine.add_entity_to_event(entity)
+
+    def match_entity_with_batch_position(self, entity_type):
+        entity = self.semantic_header.get_entity(entity_type)
+        if entity is None:
+            raise ValueError(f"{entity_type} is not defined in semantic header")
+        self.inference_engine.match_entity_with_batch_position(entity)
+        self.add_entity_to_event(entity_type=entity_type)
+
+    # rule B
+    def infer_items_propagate_downwards_one_level(self, entity_type):
+        entity = self.semantic_header.get_entity(entity_type)
+        if entity_type is None:
+            raise ValueError(f"{entity_type} is not defined in semantic header")
+        self.inference_engine.infer_items_propagate_downwards_one_level(entity)
+        self.add_entity_to_event(entity_type=entity_type)
+
+    # rule C
+    def infer_items_propagate_upwards_multiple_levels(self, entity_type, is_load=True):
+        entity = self.semantic_header.get_entity(entity_type)
+        if entity is None:
+            raise ValueError(f"{entity_type} is not defined in semantic header")
+        self.inference_engine.infer_items_propagate_upwards_multiple_levels(entity, is_load)
+        self.add_entity_to_event(entity_type=entity_type)
+
+    # rule D
+    def infer_items_propagate_downwards_multiple_level_w_batching(self, entity_type):
+        entity = self.semantic_header.get_entity(entity_type)
+        if entity_type is None:
+            raise ValueError(f"{entity_type} is not defined in semantic header")
+        self.inference_engine.infer_items_propagate_downwards_multiple_level_w_batching(entity)
+        self.add_entity_to_event(entity_type=entity_type)
 
     # endregion

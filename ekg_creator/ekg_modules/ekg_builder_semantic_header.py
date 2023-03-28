@@ -5,7 +5,7 @@ import pandas as pd
 from data_managers.semantic_header import Entity, Relation, Relationship, SemanticHeader
 from database_managers.db_connection import DatabaseConnection
 from utilities.performance_handling import Performance
-from database_managers.query_library import CypherQueryLibrary
+from cypher_queries.query_library import CypherQueryLibrary
 
 
 class EKGUsingSemanticHeaderBuilder:
@@ -80,10 +80,12 @@ class EKGUsingSemanticHeaderBuilder:
         self.connection.exec_query(CypherQueryLibrary.get_delete_foreign_nodes_query,
                                    **{"relation": relation})
 
-    def create_entity_relations_using_relations(self) -> None:
+    def create_entity_relations_using_relations(self, relation_types) -> None:
+        if relation_types is None:
+            relation_types = [relation.type for relation in self.semantic_header.relation_derived_from_relations]
         relation: Relation
         for relation in self.semantic_header.relation_derived_from_relations:
-            if relation.include:
+            if relation.include and relation.type in relation_types:
                 self.connection.exec_query(CypherQueryLibrary.get_create_relation_by_relations_query,
                                            **{"relation": relation,
                                               "batch_size": self.batch_size})

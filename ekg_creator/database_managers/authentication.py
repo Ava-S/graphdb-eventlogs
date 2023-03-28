@@ -1,11 +1,17 @@
+from dataclasses import dataclass
 from enum import Enum
 
-from database_managers.credentials import Credentials
 
 # from remote_authentication import remote
 
 # if you want a remote connection, store credentials somewhere different (e.g. remote_authentication)
-remote = None
+
+@dataclass
+class Credentials:
+    uri: str
+    user: str
+    password: str
+
 
 # local credentials
 local = Credentials(
@@ -13,6 +19,8 @@ local = Credentials(
     user="neo4j",
     password="1234"
 )
+
+remote = None
 
 
 class Connections(Enum):

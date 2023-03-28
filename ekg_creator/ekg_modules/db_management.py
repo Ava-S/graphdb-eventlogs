@@ -3,10 +3,10 @@ from typing import List, Set, Optional, Dict
 from data_managers.semantic_header import Entity
 from database_managers.db_connection import DatabaseConnection
 from utilities.performance_handling import Performance
-from database_managers.query_library import CypherQueryLibrary as cql
+from cypher_queries.query_library import CypherQueryLibrary as cql
 
 
-class EKGManagement:
+class DBManagement:
     def __init__(self, db_connection: DatabaseConnection, db_name, perf: Performance):
         self.connection = db_connection
         self.db_name = db_name

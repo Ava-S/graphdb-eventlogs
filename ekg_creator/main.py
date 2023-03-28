@@ -23,8 +23,8 @@ number_of_steps = 100
 
 datastructures = ImportedDataStructures(dataset_name)
 
-step_clear_db = False
-step_populate_graph = False
+step_clear_db = True
+step_populate_graph = True
 
 use_preloaded_files = False  # if false, read/import files instead
 verbose = False
@@ -100,8 +100,6 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
     graph.merge_duplicate_df()
     perf.finished_step(log_message=f"Merged duplicate [:DF] edges done")
 
-    # graph.df_class_relations()
-    # perf.finished_step(log_message=f"[:DF_C] edges done")
 
 
 def main() -> None:
@@ -126,9 +124,7 @@ def main() -> None:
         populate_graph(graph=graph, perf=perf)
 
     perf.finish()
-
-    if step_populate_graph:
-        perf.save()
+    perf.save()
 
     graph.print_statistics()
 

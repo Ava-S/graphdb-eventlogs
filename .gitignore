@@ -1,7 +1,6 @@
 /data/
 /.idea/
 *.pyc
-*.csv
 /json_files/ECESample.json
 /json_files/ECESample_DS.json
 /ekg_creator/ece_sample/

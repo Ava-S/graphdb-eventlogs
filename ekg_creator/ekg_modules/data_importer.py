@@ -5,7 +5,7 @@ from tqdm import tqdm
 from database_managers.db_connection import DatabaseConnection
 from data_managers.datastructures import ImportedDataStructures
 from utilities.performance_handling import Performance
-from database_managers.query_library import CypherQueryLibrary
+from cypher_queries.query_library import CypherQueryLibrary
 import pandas as pd
 
 
