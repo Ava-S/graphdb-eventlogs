@@ -1,8 +1,6 @@
 /data/
 /.idea/
 *.pyc
-/json_files/ECESample.json
-/json_files/ECESample_DS.json
 /ekg_creator/ece_sample/
 /file_preperation/ece_prepare.py
 /ekg_creator/database_managers/remote_authentication.py
