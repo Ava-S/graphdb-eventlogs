@@ -45,10 +45,13 @@ The preprocessed datasets (S1-S7.csv) should be stored in the following director
 How to use
 ----------
 
-For data import & inference
+For data import
 
 1. start the Neo4j server
 1. run main.py
+
+Output: 
+Event logs for the pizza, sensors and stations in data\ToyExample\event_logs.
 
 ## Projects
 

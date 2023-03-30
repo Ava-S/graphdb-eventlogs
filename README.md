@@ -3,7 +3,7 @@
 ## Description
 
 This repository collects queries for modeling and importing incomplete event data as Event Knowledge Graphs using the Labeled
-Property Graph data model of graph databases. 
+Property Graph data model of graph databases.
 All scripts and queries are licensed under LGPL v3.0, see LICENSE.
 Copyright information is provided within each Project.
 
@@ -45,10 +45,13 @@ The preprocessed datasets (S1-S7.csv) should be stored in the following director
 How to use
 ----------
 
-For data import & inference
+For data import
 
 1. start the Neo4j server
 1. run main.py
+
+Output: 
+Event logs for the pizza, sensors and stations in data\ToyExample\event_logs.
 
 ## Projects
 
@@ -64,7 +67,7 @@ First version for semantic header for system/event knowledge graphs: https://mul
 
 Data model and generic query templates for translating and integrating a set of related CSV event logs into single event
 graph over multiple behavioral dimensions, stored as labeled property graph in [Neo4J](https://neo4j.com/).
-See [csv_to_eventgraph_neo4j/README.txt]
+See [csv_to_eventgraph_neo4j/README.txt](ekg_creator/README.txt)
 
 Publications:
 
@@ -82,7 +85,7 @@ The data set should be added by the user.
 #### JSON files
 - ToyExample.json - a description of which Entities (Pizza, Sensors, Station), Classes need to be created:
 The main script uses this information to construct the EKG.
-- ToyExample_DS.json - a description of the different data sets. It describes which labels the records should receive (e.g. :Event, :Location, :Activity) and what properties records have 
+- ToyExample_DS.json - a description of the different data sets. It describes which labels the records should receive (e.g. :Event, :Location, :Activity) and what properties records have
 
 ### Main script
 There is one script that creates the Event/System knowledge graph: **ekg_creator/main.py**
@@ -109,7 +112,7 @@ remote = Credentials(
 - database_managers/EventKnowledgeGraph.py --> class responsible for making (changes to) the EKG and to request data from the EKG. Makes use of several modules.
 
 #### EKG_Modules
-- ekg_modules/db_management.py --> general module to manage the database 
+- ekg_modules/db_management.py --> general module to manage the database
 - ekg_modules/data_importer.py --> imports the data stored in the records into the EKG
 - ekg_modules/ekg_builder_semantic_header.py --> creates the required nodes and relations as specified in the semantic header
 - ekg_modules/inference_engine.py --> module responsible for inferring missing information
@@ -117,7 +120,7 @@ remote = Credentials(
 - ekg_modules/ekg_custom_module.py --> module to create custom queries, specific for this example
 
 #### CypherQueries
-Contains repeatable pieces of Cypher Queries for all necessary parts. 
+Contains repeatable pieces of Cypher Queries for all necessary parts.
 - cypher_queries/query_translators --> translate semantic header and data structures into Cypher
 - cypher_queries/query_library --> contains all cypher queries for the EKG modules
 - cypher_queries/custom_query_library --> contains all custom cypher queries for this example for the EKG modules
