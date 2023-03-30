@@ -32,7 +32,7 @@ Install Neo4j from https://neo4j.com/download/
 
 ### Create a new graph database
 
-- The scripts in this release assume password "1234".
+- The scripts in this release assume password "12345678".
 - The scripts assume the server to be available at the default URL bolt://localhost:7687
 - You can modify this also in the script.
 - ensure to allocate enough memory to your database, advised: dbms.memory.heap.max_size=5G

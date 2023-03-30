@@ -1,6 +1,6 @@
 from neo4j import GraphDatabase
 
-driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "1234"))
+driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "12345678"))
 
 #match (e:Event),(n:Entity),(c:Class),(l:Log),()-[df:DF]->(),()-[corr:E_EN]->() return count(e),count(n),count(c),count(l),count(df),count(corr)
 
