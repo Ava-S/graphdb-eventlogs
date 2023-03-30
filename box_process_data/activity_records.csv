@@ -5,5 +5,5 @@ physical,load,Box,LoadSS
 physical,unload,Box,UnloadSS
 physical,load,Box,LoadAL
 physical,unload,Box,UnloadAL
-administrative,,Box,F
-administrative,,Box,S
+administrative,,Box,Fill
+administrative,,Box,Seal

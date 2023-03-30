@@ -259,11 +259,11 @@ class CypherQueryLibrary:
 
         from_node_id = relation_constructor.get_from_node_label()
         first_lower_case = re.search("[a-z]", from_node_id).start()
-        from_node_id = from_node_id[:first_lower_case].lower() + from_node_id[first_lower_case + 1:] + "Id"
+        from_node_id = from_node_id[:first_lower_case].lower() + from_node_id[first_lower_case:] + "Id"
 
         to_node_id = relation_constructor.get_to_node_label()
         first_lower_case = re.search("[a-z]", to_node_id).start()
-        to_node_id = to_node_id[:first_lower_case - 1].lower() + to_node_id[first_lower_case + 1:] + "Id"
+        to_node_id = to_node_id[:first_lower_case].lower() + to_node_id[first_lower_case:] + "Id"
 
         properties = f'{{type:"Rel", {from_node_id}: {from_node_name}.ID, {to_node_id}: {to_node_name}.ID}}' \
             if relation.include_properties else ""
@@ -467,68 +467,40 @@ class CypherQueryLibrary:
         return Query(query_string=q_delete_df, kwargs={})
 
     @staticmethod
-    def _get_aggregate_df_relations_query(entity: Entity = None,
+    def _get_aggregate_df_relations_query(entity: Entity,
                                           include_label_in_c_df: bool = True,
                                           classifiers: Optional[List[str]] = None, df_threshold: int = 0,
-                                          relative_df_threshold: float = 0) -> List[Query]:
+                                          relative_df_threshold: float = 0) -> Query:
+
+        classifier_condition = ""
+        if classifiers is not None:
+            classifier_string = "_".join(classifiers)
+            classifier_condition = f"AND c1.classType = {classifier_string}"
+
+        df_label = entity.get_df_label()
+        entity_type = entity.type
+        dfc_label = CypherQueryLibrary.get_dfc_label(entity_type, include_label_in_c_df)
         # add relations between classes when desired
-        # TODO: split queries
-        if entity is None or classifiers is None:
-            q_create_dfc = f'''
-                           MATCH (c1:Class) <-[:OBSERVED]- (e1:Event) -[df]-> (e2:Event) -[:OBSERVED]-> (c2:Class)
-                           MATCH (e1) -[:CORR] -> (n) <-[:CORR]- (e2)
-                           WHERE c1.type = c2.type AND n.entityType = df.entityType
-                           WITH n.entityType as EType,c1 AS c1,count(df) AS df_freq,c2 AS c2
-                           MERGE (c1) -[rel2:DF_C {{entityType:EType, type:"DF_C"}}]-> (c2) ON CREATE SET rel2.count=df_freq
-                           '''
-
-            q_change_label = f'''
-                        MATCH (c1) -[rel2:DF_C]-> (c2) 
-                        WITH rel2, rel2.entityType as EType, rel2.count AS df_freq, c1, c2
-                           CALL apoc.do.when(
-                            {include_label_in_c_df},
-                            "RETURN 'DF_C_'+EType as DFLabel",
-                            "RETURN 'DF_C' as DFLabel",
-                            {{EType:EType}})
-                            YIELD value
-
-                       CALL apoc.refactor.setType(rel2, value.DFLabel)
-                       YIELD input, output
-                       RETURN input, output
-                    '''
-
-            return [Query(query_string=q_create_dfc, kwargs={}), Query(query_string=q_change_label, kwargs={})]
-
-        elif df_threshold == 0 and relative_df_threshold == 0:
+        if df_threshold == 0 and relative_df_threshold == 0:
             # corresponds to aggregate_df_relations &  aggregate_df_relations_for_entities in graphdb-event-logs
             # aggregate only for a specific entity type and event classifier
-            classifier_string = "_".join(classifiers)
-            df_label = entity.get_df_label()
-            entity_type = entity.type
-            dfc_label = CypherQueryLibrary.get_dfc_label(entity_type, include_label_in_c_df)
             q_create_dfc = f'''
                             MATCH (c1:Class) <-[:OBSERVED]- (e1:Event) -[df:{df_label} {{entityType: '{entity_type}'}}]-> 
                                 (e2:Event) -[:OBSERVED]-> (c2:Class)
                             MATCH (e1) -[:CORR] -> (n) <-[:CORR]- (e2)
-                            WHERE n.entityType = df.entityType AND 
-                                c1.type = "{classifier_string}" AND c2.type="{classifier_string}"
+                            WHERE n.entityType = df.entityType AND {classifier_condition}
                             WITH n.entityType as EType,c1,count(df) AS df_freq,c2
                             MERGE (c1) -[rel2:{dfc_label} {{entityType: '{entity_type}', type:"DF_C"}}]-> (c2) 
                             ON CREATE SET rel2.count=df_freq'''
-            return [Query(query_string=q_create_dfc, kwargs={})]
+            return Query(query_string=q_create_dfc, kwargs={})
         else:
             # aggregate only for a specific entity type and event classifier
             # include only edges with a minimum threshold, drop weak edges (similar to heuristics miner)
-            classifier_string = "_".join(classifiers)
-            df_label = entity.get_df_label()
-            entity_type = entity.type
-            dfc_label = CypherQueryLibrary.get_dfc_label(entity_type, include_label_in_c_df)
             q_create_dfc = f'''
                             MATCH (c1:Class) <-[:OBSERVED]- (e1:Event) -[df:{df_label} {{entityType: '{entity_type}'}}]-> 
                                 (e2:Event) -[:OBSERVED]-> (c2:Class)
                             MATCH (e1) -[:CORR] -> (n) <-[:CORR]- (e2)
-                            WHERE n.entityType = df.entityType 
-                                AND c1.type = "{classifier_string}" AND c2.type="{classifier_string}"
+                            WHERE n.entityType = df.entityType {classifier_condition}
                             WITH n.entityType as entityType,c1,count(df) AS df_freq,c2
                             WHERE df_freq > {df_threshold}
                             OPTIONAL MATCH (c2:Class) <-[:OBSERVED]- (e2b:Event) -[df2:DF]-> 
@@ -537,7 +509,7 @@ class CypherQueryLibrary:
                             WHERE (df_freq*{relative_df_threshold} > df_freq2)
                             MERGE (c1) -[rel2:{dfc_label} {{entityType: '{entity_type}', type:"DF_C"}}]-> (c2) 
                             ON CREATE SET rel2.count=df_freq'''
-            return [Query(query_string=q_create_dfc, kwargs={})]
+            return Query(query_string=q_create_dfc, kwargs={})
 
     @staticmethod
     def get_create_class_query(_class: Class) -> Query:

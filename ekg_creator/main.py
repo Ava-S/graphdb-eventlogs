@@ -82,12 +82,6 @@ def populate_graph(graph: EventKnowledgeGraph, perf: Performance):
     # rule b
     graph.infer_items_propagate_downwards_one_level(entity_type="Box")
 
-    # create corr relation between events and batch positions
-    graph.create_entity_relations_using_relations(relation_types=["CORR"])
-    perf.finished_step(log_message=f"[:REL] edges done")
-
-    graph.add_entity_to_event(entity_type="BatchPosition")
-
     # endregion
 
     # region Complete EKG creation, add DF relations after missing correlations are inferred

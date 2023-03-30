@@ -20,6 +20,16 @@
         "mandatory": true
       },
       {
+        "name": "eventId",
+        "columns": [
+          {
+            "name": "eventId",
+            "dtype": "string"
+          }
+        ],
+        "mandatory": true
+      },
+      {
         "name": "activity",
         "columns": [
           {
