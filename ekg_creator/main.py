@@ -13,7 +13,7 @@ from database_managers import authentication
 
 connection = authentication.connections_map[authentication.Connections.LOCAL]
 
-dataset_name = 'BPIC14'
+dataset_name = 'ECESample'
 use_sample = True
 
 query_interpreter = Interpreter("Cypher")

@@ -105,8 +105,8 @@ class Relationship(ABC):
             "undefined": {"has_direction": False, "from_node": 0, "to_node": 1}
         }
 
-        nodes = re.findall(r'\(.*?\)', relation_description)
-        _relation_string = re.findall(r'\[.*?\]', relation_description)[0]
+        nodes = re.findall(r'\([^>]*\)', relation_description)
+        _relation_string = re.findall(r'\[[^>]*]', relation_description)[0]
         _relation_string = re.sub(r"[\[\]]", "", _relation_string)
         _relation_components = _relation_string.split(":")
         _relation_name = _relation_components[0]
@@ -494,9 +494,9 @@ class SemanticHeader(ABC):
                               _classes, _log)
 
     @staticmethod
-    def create_semantic_header(dataset_name: str, query_interpreter, **kwargs):
+    def create_semantic_header(dataset_name: str, query_interpreter):
         with open(f'../json_files/{dataset_name}.json') as f:
             json_semantic_header = json.load(f)
 
-        semantic_header = SemanticHeader.from_dict(json_semantic_header, query_interpreter, **kwargs)
+        semantic_header = SemanticHeader.from_dict(json_semantic_header, query_interpreter)
         return semantic_header
