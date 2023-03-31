@@ -30,7 +30,7 @@ Install Neo4j from https://neo4j.com/download/
 - Neo4j Community Server, https://neo4j.com/download-center/#community
 
 Create a new graph database
-- The scripts in this release assume password "1234".
+- The scripts in this release assume password "12345678".
 - The scripts assume the server to be available 
   at the default URL bolt://localhost:7687
 - You can modify this also in the script.

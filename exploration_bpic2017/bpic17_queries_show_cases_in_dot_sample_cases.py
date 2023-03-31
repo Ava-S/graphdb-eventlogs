@@ -3,7 +3,7 @@ from graphviz import Digraph
 
 ### begin config
 # connection to Neo4J database
-driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "1234"))
+driver = GraphDatabase.driver("bolt://localhost:7687", auth=("neo4j", "12345678"))
 
 
 ##### colors

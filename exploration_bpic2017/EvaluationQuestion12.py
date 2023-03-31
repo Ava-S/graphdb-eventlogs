@@ -87,7 +87,7 @@ print("The analysis of the CSV file took "+str((end - start))+" seconds to compl
 start = time.time() #start graph analysis
 print('Start Graph analysis...')
 
-graph = Graph(password="1234") #connect to local Neo4j DB with password
+graph = Graph(password="12345678") #connect to local Neo4j DB with password
 
 #define the query
 query = """
