@@ -1,6 +1,6 @@
 import json
 from abc import ABC
-from typing import List, Any, Optional, Union, Self
+from typing import List, Any, Optional, Union
 
 from dataclasses import dataclass
 
@@ -17,7 +17,7 @@ class Class:
     qi: Any
 
     @staticmethod
-    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional['Class']:
         if obj is None:
             return None
         _label = obj.get("label")
@@ -52,7 +52,7 @@ class Condition:
     qi: Any
 
     @staticmethod
-    def from_dict(obj: Any, query_interpreter) -> Optional[Self]:
+    def from_dict(obj: Any, query_interpreter) -> Optional['Condition']:
         if obj is None:
             return None
 
@@ -71,7 +71,7 @@ class Node(ABC):
     qi: Any
 
     @staticmethod
-    def from_string(node_description: str, interpreter: Interpreter) -> Optional[Self]:
+    def from_string(node_description: str, interpreter: Interpreter) -> Optional['Node']:
         # we expect a node to be described in (node_name:Node_label)
         node_description = re.sub(r"[() ]", "", node_description)
         node_components = node_description.split(":")
@@ -97,7 +97,7 @@ class Relationship(ABC):
 
     @staticmethod
     def from_string(relation_description: str,
-                    interpreter: Interpreter) -> Optional[Self]:
+                    interpreter: Interpreter) -> Optional['Relationship']:
         # we expect a node to be described in (node_name:Node_label)
         relation_directions = {
             "left-to-right": {"has_direction": True, "from_node": 0, "to_node": 1},
@@ -143,7 +143,7 @@ class RelationConstructorByNodes(ABC):
     qi: Any
 
     @staticmethod
-    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional['RelationConstructorByNodes']:
         if obj is None:
             return None
 
@@ -169,7 +169,7 @@ class RelationConstructorByRelations(ABC):
 
     @staticmethod
     def from_dict(obj: Any, interpreter: Interpreter) -> \
-            Optional[Self]:
+            Optional['RelationConstructorByRelations']:
         if obj is None:
             return None
 
@@ -209,7 +209,7 @@ class RelationConstructorByQuery(ABC):
     qi: Any
 
     @staticmethod
-    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional['RelationConstructorByQuery']:
         if obj is None:
             return None
 
@@ -228,7 +228,7 @@ class Relation(ABC):
     qi: Any
 
     @staticmethod
-    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional['Relation']:
         if obj is None:
             return None
         _include = replace_undefined_value(obj.get("include"), True)
@@ -261,7 +261,7 @@ class EntityConstructorByNode(ABC):
     qi: Any
 
     @staticmethod
-    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional['EntityConstructorByNode']:
         if obj is None:
             return None
 
@@ -280,7 +280,7 @@ class EntityConstructorByRelation(ABC):
 
     @staticmethod
     def from_dict(obj: Any, interpreter: Interpreter = Interpreter) -> \
-            Optional[Self]:
+            Optional['EntityConstructorByRelation']:
         if obj is None:
             return None
 
@@ -300,7 +300,7 @@ class EntityConstructorByQuery(ABC):
     qi: Any
 
     @staticmethod
-    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional['EntityConstructorByQuery']:
         if obj is None:
             return None
 
@@ -347,7 +347,7 @@ class Entity(ABC):
         return properties
 
     @staticmethod
-    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional['Entity']:
 
         if obj is None:
             return None
@@ -428,7 +428,7 @@ class Log:
     qi: Any
 
     @staticmethod
-    def from_dict(obj: Any, interpreter: Interpreter) -> Self:
+    def from_dict(obj: Any, interpreter: Interpreter) -> 'Log':
         if obj is None:
             return Log(False, False, interpreter.log_qi)
         _include = replace_undefined_value(obj.get("include"), True)
@@ -465,7 +465,7 @@ class SemanticHeader(ABC):
         return None
 
     @staticmethod
-    def from_dict(obj: Any, interpreter: Interpreter) -> Optional[Self]:
+    def from_dict(obj: Any, interpreter: Interpreter) -> Optional['SemanticHeader']:
         if obj is None:
             return None
         _name = obj.get("name")
