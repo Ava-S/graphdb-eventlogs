@@ -17,6 +17,10 @@ class DummyFile(object):
         if len(x.rstrip()) > 0:
             tqdm.write(x, file=self.file)
 
+    def flush(self) -> None:
+        # NO-OP so Python doesn't complain about missing flush method.
+        pass
+
 
 # Make class to use __enter__ and __exit__ to avoid using _with_ to open and close context
 # https://stackoverflow.com/questions/6796492/temporarily-redirect-stdout-stderr
