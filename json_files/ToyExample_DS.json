@@ -1,0 +1,74 @@
+[
+    {
+      "name": "ToyExample",
+      "file_directory": "..\\data\\ToyExample\\",
+      "file_names": [
+        "s1.csv",
+        "s2.csv",
+        "s3.csv",
+        "s4.csv",
+        "s5.csv",
+        "s6.csv",
+        "s7.csv"
+      ],
+      "labels": [
+        "Event"
+      ],
+      "seperator": ";",
+      "attributes": [
+        {
+          "name": "pizzaId",
+          "columns": [
+            {
+              "name": "pizzaId",
+              "dtype": "Int64"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "activity",
+          "columns": [
+            {
+              "name": "sensor"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "sensor",
+          "columns": [
+            {
+              "name": "sensor"
+            }
+          ],
+          "mandatory": true
+        },
+        {
+          "name": "timestampInDatetime",
+          "columns": [
+            {
+              "name": "timestamp"
+            }
+          ],
+          "datetime_object": {
+            "is_epoch": true,
+            "unit": "s",
+            "format": "dd/MM/yyyy HH:mm:ss",
+            "convert_to": "ISO_DATE_TIME"
+          },
+
+          "mandatory": true
+        },
+        {
+          "name": "timestamp",
+          "columns": [
+            {
+              "name": "timestamp"
+            }
+          ],
+          "mandatory": true
+        }
+      ]
+    }
+  ]
